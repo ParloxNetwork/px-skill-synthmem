@@ -32,14 +32,11 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-SKILL_VERSION = "0.6.1"
-
 DEFAULT_STATE = {
     "vault_created": None,
     "last_run": None,
     "last_run_status": "never",
     "last_run_range": None,
-    "last_skill_version": SKILL_VERSION,
     "processed_days": [],
     "pending_sessions": [],
     "sessions_processed_total": 0,
@@ -149,7 +146,6 @@ def main():
         now = now_iso()
         state["last_run"] = now
         state["last_run_status"] = "completed"
-        state["last_skill_version"] = SKILL_VERSION
         if args.range_from:
             state["last_run_range"] = {"from": args.range_from, "to": now}
         state["current_streak_runs"] = state.get("current_streak_runs", 0) + 1

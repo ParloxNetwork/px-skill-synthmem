@@ -15,7 +15,6 @@ The vault contains `_state.json` at its root. Structure:
     "from": "2026-05-10T00:00:00-05:00",
     "to": "2026-05-12T23:59:59-05:00"
   },
-  "last_skill_version": "0.6.1",
   "processed_days": ["2026-05-10", "2026-05-11", "2026-05-12"],
   "pending_sessions": [],
   "sessions_processed_total": 87,
@@ -25,7 +24,7 @@ The vault contains `_state.json` at its root. Structure:
 }
 ```
 
-The `processed_days` array tracks which calendar days are fully consolidated. The `pending_sessions` array lists session IDs that started but failed (resilience — see below). `last_skill_version` is informational only (which skill version last wrote); the vault has no version of its own — git history covers that.
+The `processed_days` array tracks which calendar days are fully consolidated. The `pending_sessions` array lists session IDs that started but failed (resilience — see below). The vault deliberately carries **no version field of any kind** — neither its own nor the skill's. Git history (commits + tags) is the single source of truth for "what changed when". A stale hardcoded version string is worse than no string.
 
 ## Algorithm
 

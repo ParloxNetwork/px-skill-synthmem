@@ -131,13 +131,13 @@ tags:
   - synthmem-dev
 ```
 
-A daily log:
+A daily log (note: all 5 tags distinct — the project tag appears ONLY in position 5):
 ```yaml
 tags:
   - daily-log
-  - synthmem-dev
-  - meta
+  - knowledge-management
+  - vault-ops
   - summary
   - synthmem-dev
 ```
-(Yes, project tag may repeat in position 1 when the log is project-specific. That's expected.)
+The distinctness invariant applies to **every** file type, logs included. A log's domain tags (positions 1–3) describe what the run was about (`daily-log` plus the run's dominant themes); position 4 is always `summary`; position 5 is the project context. Never repeat the project tag in a domain slot.

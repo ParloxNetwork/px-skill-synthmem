@@ -43,6 +43,10 @@ Each item lands as its own patch release (v0.6.x).
 - [x] Dangling wikilinks left unresolved; draft stub only at ≥3 references (spec aligned to behavior).
 - [x] Markdown-safe output: backtick/escape `<` `>` `|` leading-`#` in all generated files (Obsidian render fix).
 
+### v0.6.2.1 — third-run polish
+- [x] Distinctness invariant now applied to **logs** too: `templates/log.md` and the `tag-taxonomy.md` log example no longer repeat the project tag in a domain slot. Removed the contradicting "repeat is expected" note.
+- [x] Removed `last_skill_version` entirely (a hardcoded string that lagged the actual release — 0.6.1 vs 0.6.2). The vault now carries **no version field at all**; git tags/commits are the single source of truth. Supersedes the v0.6.1 line above.
+
 ### Coming in v0.6.3+
 - [ ] **v0.6.3** Validator script: lints frontmatter, detects broken wikilinks, flags duplicate concepts.
 - [ ] **v0.6.4** `--dry-run` mode: preview what `/synthmem` would do, without writing.

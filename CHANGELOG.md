@@ -5,6 +5,17 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.2.1] — Third-run polish
+
+The third real run validated v0.6.2 (0/32 isolated nodes, clean tags, church-context memory applied, no markdown breakage). Two small misses remained.
+
+### Fixed
+- **Distinctness invariant now covers logs.** v0.6.2 enforced unique tags for nodes/entities but the log path still carried the old pattern: `templates/log.md` and the `tag-taxonomy.md` log example repeated the project tag in a domain slot, and a stale note said "repeat is expected" for logs. The generated `log_*.md` ended up with `synthmem-dev` in positions 2 and 5. Log tags now follow the same 5-distinct rule (`daily-log`, run-domain, `vault-ops`, `summary`, project).
+- **Removed `last_skill_version`.** Introduced in v0.6.1 as "informational", it was a hardcoded constant in `update_state.py` that lagged the real release (showed `0.6.1` while v0.6.2 ran). Per the project's versioning philosophy (git history is the single source of truth; a stale string is worse than none), the vault now carries **no version field at all**. Removed from `update_state.py`, `_state.json` template, and `catch-up-logic.md`.
+
+### Notes
+Pure corrections, no features. v0.6.3 resumes the hardening backlog (validator).
+
 ## [0.6.2] — Corrections from second real run (graph + tags + render safety)
 
 The first full month-scale run worked structurally (clean root, typed subdirs, quality bar held) but surfaced six issues — four spec/behavior gaps and two reported by the user. No new features.

@@ -6,8 +6,8 @@ slug: YYYYMMDD
 date: YYYY-MM-DD
 tags:
   - daily-log
-  - <project-tag>
-  - meta
+  - <run-primary-domain>
+  - vault-ops
   - summary
   - <project-tag>
 status: active
