@@ -10,8 +10,10 @@ vault-root/
 ├── _INDEX.md            (auto-generated inventory)
 ├── _RECENT.md           (auto-generated last 14 days)
 ├── _state.json          (machine state — last_run, counters, errors)
-├── node_*.md            (atomic concepts — your semantic vocabulary)
-├── entity_*.md          (people, tools, projects, AIs, datasets)
+├── nodes/               (created lazily on first node write)
+│   └── node_*.md        (atomic concepts — your semantic vocabulary)
+├── entities/            (created lazily on first entity write)
+│   └── entity_*.md      (people, tools, projects, AIs, datasets)
 ├── chats/               (created lazily on first chat write)
 │   └── chat_YYYYMMDD_<id>.md
 ├── logs/                (created lazily on first log write)
@@ -20,28 +22,32 @@ vault-root/
     └── _archive_YYYY-MM.md
 ```
 
+The **root contains only meta files** (README + 3 `_*` files). All content lives in typed subdirectories, each created lazily on first write.
+
 ## File prefixes
 
 | Prefix | Where it lives | Purpose |
 |---|---|---|
-| `node_` | root | A consolidated concept, doctrine, technique. Atomic unit of knowledge. |
-| `entity_` | root | A named thing: person, tool, project, AI, organization, dataset. |
+| `node_` | `nodes/` | A consolidated concept, doctrine, technique. Atomic unit of knowledge. |
+| `entity_` | `entities/` | A named thing: person, tool, project, AI, organization, dataset. |
 | `chat_` | `chats/` | One per Claude Code session — a distilled summary, not the raw transcript. |
 | `log_` | `logs/` | One per day on which `/synthmem` ran. Run report + pointers to its work. |
 | `_archive_` | `archives/` | Weekly (`_archive_YYYY-WW.md`) or monthly (`_archive_YYYY-MM.md`) rollups. |
 | `_INDEX.md`, `_RECENT.md`, `_state.json`, `README.md` | root | Meta — always at the root for predictable bootstrapping. |
 
-## Why hybrid (not fully flat, not deeply nested)
+## Why each type in its own subdirectory
 
-- **Root stays scannable.** `node_*` and `entity_*` form your knowledge vocabulary; you want them visible at a glance in Obsidian's file pane or `ls`.
-- **High-cardinality types are quarantined.** An active user produces ~1 chat per session and 1 log per day. Without subdirs the root drowns within months.
-- **Compaction is semantically clean.** Moving a `log_*` from `logs/` into `archives/_archive_*.md` is intuitive; moving between two root-level prefixes is not.
-- **Wikilinks survive the layout.** Obsidian resolves `[[chat_20260514_abc]]` by basename regardless of subdirectory, so links written before any restructuring keep working.
+- **Root stays truly clean.** Only 4 meta files at root (README, _INDEX, _RECENT, _state.json). Opening the vault, the user sees structure, not content noise. v0.5/v0.6.0 kept `node_*` and `entity_*` at root but a single active day produces 30+ of them — the "scannable root" promise broke. v0.6.1 fixes this by typing everything.
+- **Each subdirectory has a single semantic purpose.** No mixed-type clutter.
+- **Compaction is semantically clean.** Moving a `log_*` from `logs/` into `archives/_archive_*.md` is intuitive.
+- **Wikilinks survive layout changes.** Obsidian resolves `[[chat_20260514_abc]]` by basename regardless of subdirectory, so links written before any restructuring keep working.
 
 ## Lazy directory creation (strict YAGNI)
 
-The skill does NOT pre-create `chats/`, `logs/`, or `archives/` at init time. They come into existence the first time the skill has a real file to place there:
+The skill does NOT pre-create any subdirectory at init time. Each comes into existence the first time the skill has a real file to place there:
 
+- `nodes/` is created the first time a `node_*.md` is written.
+- `entities/` is created the first time an `entity_*.md` is written.
 - `chats/` is created the first time a `chat_*.md` is written.
 - `logs/` is created the first time a `log_*.md` is written.
 - `archives/` is created the first time compaction needs to write an `_archive_*.md`.
@@ -58,6 +64,18 @@ vault-root/
 
 …and grows organically as content actually arrives.
 
+## Migrating a pre-v0.6.1 vault
+
+If a vault from v0.5/v0.6.0 has `node_*.md` and `entity_*.md` at the root, the indexer on its first v0.6.1 run **must**:
+
+1. Create `nodes/` and `entities/` if missing.
+2. `mv` every root-level `node_*.md` → `nodes/`.
+3. `mv` every root-level `entity_*.md` → `entities/`.
+4. Set `migrated_to_typed_subdirs: true` in `_state.json` so subsequent runs skip the check.
+5. Record the migration in the run report.
+
+Wikilinks (which use basenames) keep resolving — no link updates needed.
+
 ## Creating new subdirectories — the YAGNI rule (autonomous)
 
 The 3 standard subdirectories (`chats/`, `logs/`, `archives/`) are the standard set the skill creates lazily on first use.
@@ -71,10 +89,11 @@ The skill MAY **autonomously create** a new subdirectory when:
 Detection is cheap (one bash invocation during indexing):
 
 ```bash
-# At the root, group files by their leading prefix (everything before the first - or _)
+# Look at the root for anything that isn't a meta file (README, _*.md).
+# Standard typed files (node_*, entity_*, chat_*, log_*) already live in subdirs.
 ls "$VAULT_PATH"/*.md 2>/dev/null \
   | xargs -n1 basename \
-  | grep -vE '^(node|entity|log|chat|_)' \
+  | grep -vE '^(README|_)' \
   | sed -E 's/^([a-z0-9]+)[-_].*/\1/' \
   | sort | uniq -c | awk '$1 >= 20 {print $2, $1}'
 ```
@@ -165,7 +184,7 @@ Session happens                        (Claude Code stores JSONL)
         ↓
 chats/chat_YYYYMMDD_<id>.md created    (distilled summary)
         ↓
-Concepts and entities extracted        → node_*.md, entity_*.md (root, create or append)
+Concepts and entities extracted        → nodes/node_*.md, entities/entity_*.md (create or append)
         ↓
 Wikilinks resolved (bidirectional)     → both ends updated
         ↓

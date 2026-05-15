@@ -72,7 +72,7 @@ python3 update_state.py --state-file VAULT/_state.json --action remove-pending -
 python3 update_state.py --state-file VAULT/_state.json --action finalize-run --range-from 2026-05-13T00:00:00-05:00
 
 # Generic set: any key, any JSON-valued value
-python3 update_state.py --state-file VAULT/_state.json --action set --value 'vault_version="0.6.0"'
+python3 update_state.py --state-file VAULT/_state.json --action set --value 'sessions_processed_total=42'
 ```
 
 ## Why scripts (instead of inline AI parsing)

@@ -5,6 +5,7 @@
   "default_project_tag": "personal",
   "owner_handle": "your-handle-or-name",
   "timezone": "Etc/UTC",
+  "first_run_default": "ask",
   "compaction": {
     "weekly_snapshot_after_days": 7,
     "monthly_archive_after_days": 30,
@@ -22,5 +23,8 @@
     "content_type_tags_count": 1,
     "project_tags_count": 1,
     "prefer_specific_over_generic": true
+  },
+  "privacy": {
+    "record_cwd_in_chats": false
   }
 }

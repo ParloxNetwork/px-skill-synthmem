@@ -1,14 +1,16 @@
 {
-  "vault_version": "0.5.0",
   "vault_created": "YYYY-MM-DDTHH:MM:SS-HH:MM",
   "last_run": null,
   "last_run_status": "never",
   "last_run_range": null,
-  "last_processed_session_mtime": null,
+  "last_skill_version": "0.6.1",
+  "processed_days": [],
+  "pending_sessions": [],
   "sessions_processed_total": 0,
   "current_streak_runs": 0,
+  "migrated_to_typed_subdirs": false,
   "schema": {
     "frontmatter": "1.0",
-    "vault_layout": "1.0"
+    "vault_layout": "2.0"
   }
 }

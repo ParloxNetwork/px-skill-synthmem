@@ -4,14 +4,14 @@
 
 ## What this is
 
-A hybrid-Markdown "third brain" — a persistent memory of work done with AI assistants, structured for both AI and human readability. Semantic content lives at the root; high-cardinality transient files live in subdirectories.
+A typed-Markdown "third brain" — a persistent memory of work done with AI assistants, structured for both AI and human readability. Every content type lives in its own subdirectory; the root holds only meta files.
 
 The skill writes here. You read here. Run `/synthmem` (typically end-of-day) to consolidate recent sessions into this vault.
 
 ## How to read it
 
 - Open in [Obsidian](https://obsidian.md) for graph view and wikilink navigation.
-- Or browse with any text editor / `grep` / `rg` — every file is plain Markdown.
+- Or browse with any text editor / `grep -r` / `rg` — every file is plain Markdown.
 - Start with [[_INDEX]] (full inventory) or [[_RECENT]] (last 14 days).
 
 ## Layout
@@ -22,21 +22,21 @@ vault-root/
 ├── _INDEX.md              ← inventory, auto-generated
 ├── _RECENT.md             ← last 14 days, auto-generated
 ├── _state.json            ← machine state (last-run, etc.)
-├── node_*.md              ← concepts (atomic knowledge)
-├── entity_*.md            ← people, tools, projects, AIs
+├── nodes/                 ← consolidated concepts (atomic knowledge)
+├── entities/              ← people, tools, projects, AIs
 ├── chats/                 ← one file per Claude Code session
 ├── logs/                  ← one file per day /synthmem ran
 └── archives/              ← weekly + monthly rollups
 ```
 
-Subdirectories are created **lazily** — only when there is real content to put inside.
+The root contains **only meta files**. All content lives in typed subdirectories. Each subdirectory is created **lazily** — only when there is real content to put inside.
 
 ## File types
 
 | Prefix | Location | What it is |
 |---|---|---|
-| `node_*` | root | A consolidated concept, technique, or doctrine. |
-| `entity_*` | root | A person, tool, project, library, or other named thing. |
+| `node_*` | `nodes/` | A consolidated concept, technique, or doctrine. |
+| `entity_*` | `entities/` | A person, tool, project, library, or other named thing. |
 | `chat_*` | `chats/` | One per Claude Code session — distilled summary, not the raw transcript. |
 | `log_*` | `logs/` | One per day on which `/synthmem` ran. |
 | `_archive_*` | `archives/` | Weekly + monthly snapshots. Originals retained. |
@@ -70,18 +70,20 @@ Five tags exactly: 3 specific-domain + 1 content-type + 1 project-context. See t
 
 Use **basenames only** — never include the subdirectory:
 
+- ✅ `[[node_soteriology]]`
 - ✅ `[[chat_20260514_abc]]`
+- ❌ `[[nodes/node_soteriology]]`
 - ❌ `[[chats/chat_20260514_abc]]`
 
-This way links survive if a file moves between root and a subdir.
+This way links survive if a file moves between subdirs (or, in the future, between layouts).
 
 ## What the skill will and won't do
 
 ✅ Will:
-- Create and append `node_*`, `entity_*`, `chats/chat_*`, `logs/log_*`.
+- Create and append `nodes/node_*`, `entities/entity_*`, `chats/chat_*`, `logs/log_*`.
 - Maintain `_INDEX.md`, `_RECENT.md`, `_state.json`.
-- Create `chats/`, `logs/`, `archives/` lazily on first need.
-- Propose a new subdirectory only when ≥ 20 files of a distinct type accumulate.
+- Create subdirectories (`nodes/`, `entities/`, `chats/`, `logs/`, `archives/`) lazily on first need.
+- Propose a new subdirectory only when ≥ 20 files of a distinct prefix accumulate at the root.
 - Generate weekly + monthly `_archive_*` files in `archives/` (originals preserved).
 - Resolve bidirectional wikilinks.
 

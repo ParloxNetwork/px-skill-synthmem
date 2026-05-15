@@ -19,17 +19,29 @@ Synthmem is built incrementally. v0.5 is the first public-shaped scaffold; later
 
 ## v0.6 — Hardening (in progress)
 
+Each item lands as its own patch release (v0.6.x).
+
+### v0.6.0 — foundation
 - [x] Helper scripts in `skill/scripts/` (Python stdlib; graceful fallback if missing).
   - `find_sessions.py` — list sessions overlapping a date range.
   - `parse_session.py` — structured turns from one JSONL.
   - `update_state.py` — atomic mutations on `_state.json` with file locking.
 - [x] Long-session chunking: distiller processes sessions >100 turns in 50-turn chunks.
 - [x] Autonomous bucket creation: ≥20-file prefix patterns trigger bucket creation + reporting (no user intervention required).
-- [ ] Validator script: lints frontmatter, detects broken wikilinks, flags duplicate concepts.
-- [ ] `--dry-run` mode: preview what `/synthmem` would do, without writing.
-- [ ] `/synthmem status`: report vault size, last-run, pending sessions, errors.
-- [ ] `/synthmem --retry`: reprocess failed sessions explicitly.
-- [ ] Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
+
+### v0.6.1 — corrections from first real run
+- [x] Config path bug: resolve `_local/config.json` from the skill's installed dir (not cwd). Adds XDG fallback for copy installs.
+- [x] Typed subdirectories: `nodes/` and `entities/` (lazy) — root holds only meta files. Migrates pre-v0.6.1 vaults automatically.
+- [x] Distiller quality bar: promotion threshold (≥2 sources OR ≥200 words OR explicit user marker); aggressive same-root merging to fight fragmentation.
+- [x] `first_run_default` config flag: `ask | today | full | <N>d`. Default `ask`. Fallback to `today` in non-interactive runtimes.
+- [x] Removed `vault_version` from `_state.json`; added `last_skill_version` (informational). Git history is the vault's own changelog.
+
+### Coming in v0.6.2+
+- [ ] **v0.6.2** Validator script: lints frontmatter, detects broken wikilinks, flags duplicate concepts.
+- [ ] **v0.6.3** `--dry-run` mode: preview what `/synthmem` would do, without writing.
+- [ ] **v0.6.4** `/synthmem status`: report vault size, last-run, pending sessions, errors.
+- [ ] **v0.6.5** `/synthmem --retry`: reprocess failed sessions explicitly.
+- [ ] **v0.6.6** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
 
 ## v0.7 — Multi-IA support
 

@@ -11,10 +11,10 @@ You are operating the **synthmem skill**: a batch consolidator that turns Claude
 
 When invoked you:
 
-1. Resolve **configuration** from `_local/config.json` (vault path, owner handle, timezone, etc.). Never invent paths. See `references/privacy-and-config.md`.
+1. Resolve **configuration** from `_local/config.json` using the strict path-resolution algorithm in `references/privacy-and-config.md`. The config lives next to the skill repo (resolved via `readlink -f ~/.claude/skills/synthmem`), **not** in the current working directory. If missing, abort and tell the user which paths were searched. Never invent paths.
 2. Resolve the **time window**: read `_state.json` in the vault to find `last_run`, then process every Claude Code session between `last_run` and "now". If `_state.json` is missing, run the **first-run flow** (see `references/catch-up-logic.md`) — that is the only place you ask the user a question.
 3. **Harvest** raw session transcripts from the configured `claude_sessions_dir`. See `references/session-source.md`.
-4. **Distill** concepts, entities, decisions, and code patterns from those transcripts into typed Markdown files (`node_*` and `entity_*` at the root; `chat_*` in `chats/`; `log_*` in `logs/`).
+4. **Distill** concepts, entities, decisions, and code patterns from those transcripts into typed Markdown files: `node_*` in `nodes/`, `entity_*` in `entities/`, `chat_*` in `chats/`, `log_*` in `logs/`. Apply the **distiller quality bar** (see `references/multi-agent-orchestration.md`) — fragment less, merge more.
 5. **Link** new and existing files bidirectionally with `[[wikilinks]]` (use basenames, never include the subdirectory prefix).
 6. **Index** the vault: update `_INDEX.md` and `_RECENT.md` (both at the root).
 7. **Compact** old daily logs and chats into `archives/_archive_*.md` — **without deleting** original content. See `references/compaction-policy.md`.
@@ -53,16 +53,20 @@ See `references/multi-agent-orchestration.md` for each sub-agent's contract, inc
 
 For tiny runs (one short session, init-only) you may do this inline without spawning sub-agents. The orchestrator decides per run.
 
-## Vault structure — hybrid, with lazy subdirectories
+## Vault structure — typed subdirectories, lazy creation
 
 Read `references/vault-structure.md` for the full spec. Quick reference:
 
-- **Root**: `node_*`, `entity_*`, `_INDEX.md`, `_RECENT.md`, `_state.json`, `README.md`. Stays scannable.
+- **Root** (4 meta files only): `_INDEX.md`, `_RECENT.md`, `_state.json`, `README.md`.
+- **`nodes/`**: one `node_*.md` per consolidated concept. Created on first node write.
+- **`entities/`**: one `entity_*.md` per named thing. Created on first entity write.
 - **`chats/`**: one `chat_*.md` per Claude Code session. Created on first chat write.
 - **`logs/`**: one `log_*.md` per run day. Created on first log write.
 - **`archives/`**: rollups (`_archive_YYYY-WW.md`, `_archive_YYYY-MM.md`). Created on first compaction.
 
-All three subdirectories are created **lazily** — never preemptively. A vault with no real content yet has no `chats/`, no `logs/`, no `archives/`.
+All subdirectories are created **lazily** — never preemptively. A fresh vault has only the 4 meta files.
+
+**Migrating from v0.5/v0.6.0**: if the vault has `node_*.md` or `entity_*.md` at the root, the indexer moves them into `nodes/` and `entities/` on the first v0.6.1 run and records this in `_state.json` (`migrated_to_typed_subdirs: true`). Wikilinks survive (basenames).
 
 ## Frontmatter (mandatory)
 
@@ -116,14 +120,18 @@ Before you stop, append a short report to today's `logs/log_YYYYMMDD.md`:
 ```markdown
 ## Run report (YYYY-MM-DD HH:MM)
 - Tooling: scripts_ok | fallback
+- First-run mode: ask | today | full | 7d | ... (only present on first run)
 - Sessions processed: <N>
 - Date range: YYYY-MM-DD → YYYY-MM-DD
 - New nodes: <list of slugs>
 - New entities: <list of slugs>
-- Updated nodes: <list of slugs>
+- Updated nodes: <list of slugs, with merge notes if same-root merges happened>
+- Merges performed: <e.g. "node_synthmem-helper-scripts → node_synthmem (same-root merge)">
+- Concepts NOT promoted (kept inline in chats): <count + 1-line reason>
 - Archived: <count of files moved to archives/>
-- Subdirectories created this run: <list, if any>
+- Subdirectories created this run: <list, if any — e.g. "nodes/, entities/ (first content)">
 - Buckets auto-created: <e.g. "decisions/ (23 decision-* files moved in)">
+- Vault migrated to typed subdirs: <true on the v0.6.1 upgrade run, omitted otherwise>
 - Warnings: <anything the user should know>
 - Errors / retries needed: <session ids, if any>
 ```

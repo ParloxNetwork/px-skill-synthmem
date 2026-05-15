@@ -8,21 +8,24 @@ The vault contains `_state.json` at its root. Structure:
 
 ```json
 {
-  "vault_version": "0.5.0",
+  "vault_created": "2026-05-14T19:34:00-05:00",
   "last_run": "2026-05-12T23:47:00-05:00",
   "last_run_status": "completed",
   "last_run_range": {
     "from": "2026-05-10T00:00:00-05:00",
     "to": "2026-05-12T23:59:59-05:00"
   },
+  "last_skill_version": "0.6.1",
   "processed_days": ["2026-05-10", "2026-05-11", "2026-05-12"],
   "pending_sessions": [],
   "sessions_processed_total": 87,
-  "current_streak_runs": 3
+  "current_streak_runs": 3,
+  "migrated_to_typed_subdirs": true,
+  "schema": {"frontmatter": "1.0", "vault_layout": "2.0"}
 }
 ```
 
-The `processed_days` array tracks which calendar days are fully consolidated. The `pending_sessions` array lists session IDs that started but failed (resilience — see below).
+The `processed_days` array tracks which calendar days are fully consolidated. The `pending_sessions` array lists session IDs that started but failed (resilience — see below). `last_skill_version` is informational only (which skill version last wrote); the vault has no version of its own — git history covers that.
 
 ## Algorithm
 
@@ -38,14 +41,22 @@ Open `_state.json`. Three cases:
 
 ### Step 1a — First-run flow
 
-This is the single place the skill asks the user a question. Triggered when `_state.json` is missing.
+Triggered when `_state.json` is missing. The behavior is governed by `config.first_run_default`:
 
-Detect what's in the vault:
+| Value | Behavior |
+|---|---|
+| `"ask"` (default) | Show the interactive prompt below and wait for user input. |
+| `"today"` | Skip the prompt; process today only. |
+| `"full"` | Skip the prompt; process all history found (warn in log only). |
+| `"7d"`, `"30d"`, etc. | Skip the prompt; process the given relative window. |
 
-- **Empty vault** (no `node_*`, `entity_*`, `chats/`, `logs/`, only optional `.obsidian/` or similar tool config): pure first run.
-- **Vault has prior content but no state**: the user imported a vault or deleted state. Treat the same way — ask.
+This is the ONLY place the skill asks the user a question. If the user has set a non-`ask` value, the skill must honor it silently.
 
-Ask exactly once, in this format:
+**Detection** (same regardless of mode):
+- **Empty vault** (no content files, only optional `.obsidian/` or similar tool config): pure first run.
+- **Vault has prior content but no state**: the user imported a vault or deleted state. Treat the same way.
+
+**Prompt** (only if `first_run_default == "ask"`):
 
 ```
 🆕 First run detected — vault has no _state.json yet.
@@ -72,6 +83,8 @@ Then act on the answer:
 - `4`: write a minimal `_state.json` (`last_run_status: "never"`) so the next invocation can still resume, but do nothing else. Exit.
 
 After init, never ask again. Subsequent runs follow Step 2.
+
+**Non-interactive sessions** (cron, headless, `/loop`): if the runtime cannot present an interactive prompt and `first_run_default == "ask"`, the skill falls back to `today` and records the fallback in the run report. The user can pre-set the config to skip this fallback entirely.
 
 ### Step 2 — Compute the time window
 

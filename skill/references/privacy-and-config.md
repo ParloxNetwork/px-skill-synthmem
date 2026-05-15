@@ -18,15 +18,41 @@ If you (the AI) are about to write a personal value into a file that lives insid
 | The vault itself | All content extracted from sessions. | The user decides. The skill never assumes. |
 | `skill/**/*` and `commands/synthmem.md` | Skill logic, templates, references. | ✅ Yes — and must contain zero personal data. |
 
-## Reading config at runtime
+## Reading config at runtime — strict path resolution
 
-On every invocation, resolve config from `_local/config.json`. If it is missing:
+The skill is invoked from arbitrary working directories (often the vault path, sometimes elsewhere). The config **must** be resolved from the skill's own installed location, never from the cwd.
 
-1. **Tell the user explicitly** that the file is missing.
+### Resolution algorithm (in order)
+
+```bash
+# 1. Resolve the skill's installed directory by following the symlink
+SKILL_INSTALL="$(readlink -f "${HOME}/.claude/skills/synthmem")"
+# Typically: /path/to/px-skill-synthmem/skill
+
+# 2. The _local/ folder lives one level up (next to the skill/ folder in the repo)
+REPO_ROOT="$(dirname "$SKILL_INSTALL")"
+PRIMARY_CONFIG="$REPO_ROOT/_local/config.json"
+
+# 3. Fallback for users who copied (instead of symlinked) the skill
+FALLBACK_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/synthmem/config.json"
+
+# 4. Honor explicit env override
+CONFIG="${SYNTHMEM_CONFIG:-}"
+[ -z "$CONFIG" ] && [ -f "$PRIMARY_CONFIG" ] && CONFIG="$PRIMARY_CONFIG"
+[ -z "$CONFIG" ] && [ -f "$FALLBACK_CONFIG" ] && CONFIG="$FALLBACK_CONFIG"
+```
+
+If `$CONFIG` is still empty after this resolution, the config is missing:
+
+1. **Tell the user explicitly** which paths were searched.
 2. Point them at the public template (`config.example.json` at the skill repo root) and `INSTALL.md`.
-3. Do not invent defaults for `vault_path` or `claude_sessions_dir` — abort instead. Inventing a default risks writing the vault somewhere unexpected.
+3. **Abort.** Never invent `vault_path` or `claude_sessions_dir` defaults — that risks writing the vault somewhere unexpected.
 
-If config is present but a field is missing, use the documented default (see `config.example.json` at the repo root as the source of truth for defaults).
+If the config file is present but a *field* is missing, use the documented default from `config.example.json`.
+
+### Anti-pattern (do NOT do)
+
+Do **not** look for `_local/config.json` relative to the current working directory. That fails when the user runs `/synthmem` from inside the vault (which is the common case): the skill would search inside the vault and find nothing, then create a *new* config with inferred defaults, silently shadowing the real one. This is exactly the bug fixed in v0.6.1.
 
 ## Placeholders used inside the skill
 

@@ -81,6 +81,31 @@ For sessions ≤ 100 turns, the distiller processes them in one pass.
 - Overwrite existing `node_*` or `entity_*` files entirely. Append, or refactor only if explicitly justified in the handoff JSON.
 - Duplicate concepts under near-identical slugs (`node_justification` vs `node_justification-doctrine`). Search the vault first; reuse the existing slug.
 
+### Distiller quality bar — strict promotion criteria (v0.6.1)
+
+A common failure mode in v0.6.0 was over-fragmentation: a single session produced 30+ `node_*` files for concepts that were one-shot mentions or implementation details. To prevent this, **a concept is promoted to a standalone `node_*.md` only if at least one of these holds**:
+
+1. **Recurrence**: the concept appears in **≥ 2 distinct sessions** (cross-references in `sources:` of an existing node, or two different chat transcripts in this run).
+2. **Substantive content**: the distilled material is **≥ 200 words** when written out — concrete enough to be a knowledge atom, not a passing reference.
+3. **Explicit user marking**: the user said "save this" / "remember this" / "note that" in the session.
+
+If none holds, the concept becomes either:
+- A bullet under "Concepts touched" in the relevant `chat_*.md` (default), **or**
+- An `## Update YYYY-MM-DD` section appended to an existing related `node_*.md` (preferred when there is a clear parent concept).
+
+### Aggressive merging — slug-root collision
+
+Before creating `node_<slug>`, the distiller searches for any existing file in `nodes/` whose slug starts with the same root token (everything before the first `-`):
+
+- Existing: `node_synthmem-skill.md`. Proposed: `node_synthmem-helper-scripts.md`. **Merge** into the existing one as a new `## Update` section.
+- Existing: `node_claude-code.md`. Proposed: `node_claude-code-content-filter.md`. **Merge** unless the new concept is independently substantive (>= 200 words AND not a sub-aspect of the parent).
+
+The same rule applies to `entity_*` files.
+
+### Why this matters
+
+Without the quality bar, a single active day floods the vault with low-signal nodes. After 30 days you have hundreds of files most of which are one-line concepts. The vault becomes harder to navigate than the chat transcripts themselves — defeating the point.
+
 ### 3. `linker`
 
 **Job:** Enforce bidirectional wikilinks.

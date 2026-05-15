@@ -110,8 +110,10 @@ my-synth-vault/
 ├── _INDEX.md
 ├── _RECENT.md
 ├── _state.json
-├── node_*.md               (concepts distilled from sessions)
-├── entity_*.md             (people/tools/projects identified)
+├── nodes/
+│   └── node_*.md           (concepts distilled from sessions)
+├── entities/
+│   └── entity_*.md         (people/tools/projects identified)
 ├── chats/
 │   └── chat_YYYYMMDD_*.md  (one per session)
 └── logs/
