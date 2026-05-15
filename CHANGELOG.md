@@ -5,6 +5,25 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.5] — repair pass + scope-aware validation gate
+
+The v0.6.4 dry-run surfaced an architectural gap: template/spec fixes only apply to newly-generated files, so a vault made by an older skill version stays broken forever, and the v0.6.3 gate would keep `_state.json` at "partial" indefinitely on legacy errors. v0.6.5 closes that gap. Roadmap reordered: `repair` promoted ahead of `status`.
+
+### Added
+- **`skill/scripts/repair_vault.py`** + **`/synthmem repair`**: deterministic reconcile of an existing vault. Fixes: meta/archive/log tag normalization to the canonical 5-distinct tuple; `slug` → filename-stem-minus-prefix; missing reverse wikilinks added; archive content-type → `summary`; bare `<…>` tokens backticked. **Never deletes content** — only rewrites targeted frontmatter fields / `linked_nodes` / backticks bodies, and bumps `last_updated`. Genuine duplicate-domain-tags on `node_`/`entity_` are flagged (not auto-fixed — need a semantic re-tag).
+  - Measured on the v0.6.2 test vault: **FAIL (6 errors / 130 warnings) → REVIEW (0 errors / 2 warnings)**, 72 files fixed, 0 flagged. Body content preserved byte-for-byte (verified line counts).
+- **Scope-aware gate**: `validate_vault.py --changed "<files this run touched>"`. ERRORs in touched files still block; ERRORs in untouched legacy files are demoted to warnings tagged "pre-existing (run /synthmem repair)". A clean run is no longer blocked forever by old issues; the gate points at `repair` instead of stalling.
+
+### Changed
+- Pipeline gate (SKILL.md step 8, multi-agent-orchestration.md): now scope-aware; finalizes on out-of-scope-only errors while telling the user to run `/synthmem repair`.
+- ROADMAP reordered: v0.6.6 `status`, v0.6.7 `--retry`, v0.6.8 tag linter.
+
+### Resolved
+- Watch-item "asymmetric wikilinks (~79)": `repair` adds the missing reverse links. 2 residual archive↔chat edges remain (archive body refs) — logged as a minor watch-item.
+
+### Notes
+`repair` is the piece that makes the validator+gate *useful* rather than merely *accusatory*, and it's a prerequisite for public promotion (early adopters' vaults must be fixable). v0.6.6 next: `/synthmem status`.
+
 ## [0.6.4] — `--dry-run` preview mode
 
 ### Added

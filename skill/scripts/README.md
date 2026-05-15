@@ -56,9 +56,24 @@ Checks: frontmatter completeness, `type`↔subdir, slug==filename-tail, 5 distin
 
 **Stdout**: JSON `{summary:{errors,warnings,info,verdict}, errors[], warnings[], info[]}`. **Exit 5** if any ERROR-level issue (so a CI step or the skill can gate on it); exit 0 if only warnings/info.
 
+`--changed "a.md,b.md,…"` (scope-aware gate): ERRORs in listed files stay ERRORs; ERRORs in files NOT listed are demoted to warnings tagged "pre-existing (run /synthmem repair)". The run gate passes the files it touched so legacy issues don't block finalization forever.
+
 Two ways it runs:
-- **End of every `/synthmem`** — the indexer invokes it; findings go into the daily log report and `_state.json` is finalized only if there are no ERRORs.
-- **Standalone** `/synthmem validate` — read-only, no consolidation. Cheap way to audit a large existing vault without reprocessing.
+- **End of every `/synthmem`** — the indexer invokes it with `--changed`; findings go into the daily log; `_state.json` finalized only if zero *in-scope* ERRORs.
+- **Standalone** `/synthmem validate` — read-only, no `--changed`, whole-vault audit.
+
+### `repair_vault.py`
+
+Deterministic reconcile/fix pass. The validator *detects*; this *fixes*. Modifies files in place but **never deletes content** — only rewrites specific frontmatter fields, adds missing reverse wikilinks, backticks render-breaking tokens; bumps `last_updated`.
+
+```bash
+python3 repair_vault.py --vault /path/to/vault --project synthmem-dev
+python3 repair_vault.py --vault /path/to/vault --format text   # human-readable
+```
+
+Fixes: meta/archive/log tag normalization to the canonical 5-distinct tuple; `slug` → filename-stem-minus-prefix; missing reverse wikilinks; archive content-type → `summary`; bare `<…>` → backticked. Genuine duplicate-domain-tags on `node_`/`entity_` are **flagged, not auto-fixed** (need semantic re-tag).
+
+**Stdout**: JSON `{summary, fixed[], flagged[]}`. Exit 0 always (it is a fix tool, not a gate). On the v0.6.2 test vault it took the verdict from FAIL (6 errors / 130 warnings) to REVIEW (0 errors / 2 warnings). Invoked by `/synthmem repair`; recommended by the gate whenever pre-existing errors appear.
 
 ### `parse_session.py`
 
@@ -103,5 +118,7 @@ python3 update_state.py --state-file VAULT/_state.json --action set --value 'ses
 | Parse a 100-turn JSONL | ~5,000 tokens, possible hallucination | <100 ms, deterministic |
 | Update `_state.json` | Error-prone JSON merge | Atomic, file-locked |
 | List sessions in a date range | Per-file decision logic | Single fast pass |
+| Validate the whole vault | Inconsistent eyeballing | Reproducible, exit-coded |
+| Repair legacy issues | Risky freehand edits | Field-targeted, content-safe |
 
 The skill detects script availability at the start of every run. If `python3` is on PATH and the scripts are present, it uses them. Otherwise it falls back to the inline rules in `references/session-source.md` and notes the degradation in the run report.

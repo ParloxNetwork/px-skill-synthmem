@@ -278,6 +278,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("--vault", required=True, help="vault root path")
     ap.add_argument("--format", choices=["json", "text"], default="json")
+    ap.add_argument("--changed", default=None,
+                    help="comma-separated list of vault-relative paths this "
+                         "run wrote/touched. ERRORs in files NOT in this "
+                         "list are demoted to warnings tagged 'pre-existing "
+                         "(run /synthmem repair)'. Used by the run gate so "
+                         "legacy issues don't block finalization forever.")
     args = ap.parse_args()
 
     vault = Path(args.vault).expanduser()
@@ -309,6 +315,22 @@ def main():
 
     graph_checks(link_index, errors, warnings, info)
     dup_checks(slugs, titles, warnings, info)
+
+    # Scope-aware gate: demote ERRORs in files this run did NOT touch to
+    # warnings. Legacy issues should not block finalization forever —
+    # they are addressed by `/synthmem repair`, not by reprocessing.
+    if args.changed is not None:
+        scope = {s.strip() for s in args.changed.split(",") if s.strip()}
+        kept, demoted = [], []
+        for e in errors:
+            if e["file"] in scope or e["file"] in ("(graph)", "(dedup)"):
+                kept.append(e)
+            else:
+                e = dict(e)
+                e["msg"] += " — pre-existing (run /synthmem repair)"
+                demoted.append(e)
+        errors = kept
+        warnings = demoted + warnings
 
     result = {
         "summary": {

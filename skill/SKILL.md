@@ -18,13 +18,23 @@ When invoked you:
 5. **Link** new and existing files bidirectionally with `[[wikilinks]]` (use basenames, never include the subdirectory prefix).
 6. **Index** the vault: update `_INDEX.md` and `_RECENT.md` (both at the root).
 7. **Compact** old daily logs and chats into `archives/_archive_*.md` — **without deleting** original content. See `references/compaction-policy.md`.
-8. **Validate**: run `scripts/validate_vault.py --vault ${VAULT_PATH}` (if Python available; otherwise do an inline equivalent check). Fold the `summary` + any errors/warnings into the daily log report. **Finalize `_state.json` only if there are zero ERROR-level issues**; if errors exist, leave `last_run_status: "partial"` and surface them prominently so the next run / the user can address them.
+8. **Validate (scope-aware gate)**: run `scripts/validate_vault.py --vault ${VAULT_PATH} --changed <comma-separated list of files this run wrote/touched>` (if Python available; otherwise inline equivalent). Passing `--changed` is important: ERRORs in files **this run touched** block finalization; ERRORs in **untouched legacy files** are demoted to warnings tagged "pre-existing (run /synthmem repair)" so a clean run is not blocked forever by old issues. Fold the `summary` + errors/warnings into the daily log report. **Finalize `_state.json` only if zero in-scope ERRORs**; otherwise leave `last_run_status: "partial"`. If the only problems are pre-existing/out-of-scope, finalize normally **and** tell the user to run `/synthmem repair`.
 9. **Write** an end-of-run summary to today's `logs/log_YYYYMMDD.md`.
 10. After updating `_state.json` (per-day, see catch-up-logic), tell the user briefly what was done — include the validation verdict (PASS / REVIEW / FAIL).
 
 ### `/synthmem validate` — read-only audit mode
 
 If invoked as `/synthmem validate`, do **only** step 8 against the existing vault: run `validate_vault.py`, print the report, exit. No harvest, no distill, no writes, no `_state.json` change. This lets the user audit a large vault cheaply without reprocessing.
+
+### `/synthmem repair` — reconcile an existing vault
+
+If invoked as `/synthmem repair`, run `scripts/repair_vault.py --vault ${VAULT_PATH} --project ${PROJECT_TAG}` and report what it fixed. No harvest, no distill, no consolidation. This is the **only** mode besides a real run that modifies vault files — and it only ever rewrites specific frontmatter fields, adds missing reverse wikilinks, and backticks render-breaking tokens. It never deletes content.
+
+Why this exists: template/spec fixes only apply to newly-generated files. A vault made by an older skill version stays broken forever unless a repair pass reconciles it. `/synthmem repair` is what makes the v0.6.3 validator + gate *useful* rather than just *accusatory*.
+
+Deterministic fixes: meta/archive/log tag normalization to the canonical 5-distinct tuple; `slug` set to filename-stem-minus-prefix; missing reverse wikilinks added; archive content-type → `summary`; bare `<…>` tokens backticked. Genuine duplicate-domain-tag cases on `node_`/`entity_` files are **flagged, not auto-fixed** (they need a semantic re-tag).
+
+After repair, run the validator and show the before/after verdict. Recommend `/synthmem repair` whenever the validation gate reports pre-existing (out-of-scope) errors.
 
 ### `/synthmem --dry-run` — preview, write nothing
 

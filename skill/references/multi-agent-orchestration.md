@@ -173,17 +173,22 @@ For every `node_*` / `entity_*` written or touched this run, establish links to 
 
 ### 4b. Validation gate (always, not optional)
 
-After the indexer finishes and before the run is finalized, run the deterministic validator:
+After the indexer finishes and before the run is finalized, run the deterministic validator **scope-aware** — pass the list of files this run wrote/touched (collected from the harvester/distiller/linker/indexer handoffs):
 
 ```bash
-python3 ${SKILL_DIR}/scripts/validate_vault.py --vault ${VAULT_PATH}
+python3 ${SKILL_DIR}/scripts/validate_vault.py \
+  --vault ${VAULT_PATH} \
+  --changed "logs/log_20260515.md,nodes/node_x.md,chats/chat_..._....md,..."
 ```
 
-(If Python is unavailable, perform the equivalent checks inline — see `validate_vault.py`'s docstring for the exact rule set.)
+(If Python is unavailable, perform the equivalent checks inline — see `validate_vault.py`'s docstring.)
 
-- Parse the JSON `summary`. Append it + any `errors`/`warnings` to today's `logs/log_YYYYMMDD.md`.
-- **If `errors > 0`**: do **not** call `update_state.py --action finalize-run`. Instead leave `last_run_status: "partial"`, list the errors prominently in the report, and tell the user. The next run (or `/synthmem validate`) re-checks.
-- **If only warnings/info**: finalize normally; warnings are informational (e.g., asymmetric links that the next linker pass will reconcile, intentional dangling anchors).
+- Parse the JSON `summary`. Append it + errors/warnings to today's `logs/log_YYYYMMDD.md`.
+- **In-scope errors > 0** (errors in files this run touched): do **not** finalize. Leave `last_run_status: "partial"`, list them prominently, tell the user.
+- **Only pre-existing/out-of-scope errors** (legacy files this run didn't touch — demoted to warnings tagged "pre-existing (run /synthmem repair)"): **finalize normally**, but tell the user clearly: "Vault has N legacy issues from older runs — run `/synthmem repair` to reconcile them." Do not block on these forever; that was the v0.6.5 fix.
+- **Only warnings/info**: finalize normally.
+
+Why scope matters: template/spec fixes only apply to new files. Without `--changed`, any vault with legacy errors would stay `partial` on every future run even when new output is perfect — making the gate counterproductive. The repair pass (`/synthmem repair`, `scripts/repair_vault.py`) is what actually clears legacy issues; the gate just points at it.
 
 This replaces ad-hoc LLM "sanity checking" with a deterministic, reproducible gate — the same reason the other scripts exist (v0.6.0 principle: mechanical work is scripted, not eyeballed).
 

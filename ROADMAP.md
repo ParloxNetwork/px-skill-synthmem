@@ -56,13 +56,18 @@ Each item lands as its own patch release (v0.6.x).
 ### v0.6.4 — `--dry-run`
 - [x] `/synthmem --dry-run`: full read-only preview (config + window + harvest + metadata-level plan), prints a plan, writes nothing (no files, no subdirs, no `_state.json`). Guardrail #13. Sub-agent dry-run contracts documented.
 
-### Coming in v0.6.5+
-- [ ] **v0.6.5** `/synthmem status`: report vault size, last-run, pending sessions, errors.
-- [ ] **v0.6.6** `/synthmem --retry`: reprocess failed sessions explicitly.
-- [ ] **v0.6.7** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
+### v0.6.5 — repair pass + scope-aware gate
+- [x] `repair_vault.py` + `/synthmem repair`: deterministic reconcile of legacy vaults — meta/archive/log tag normalization, slug==filename-tail, missing reverse wikilinks, archive content-type, markdown backticking. Never deletes content. Genuine node/entity dup-tags flagged (not auto-fixed). On the v0.6.2 test vault: FAIL (6 err/130 warn) → REVIEW (0 err/2 warn).
+- [x] Scope-aware gate: `validate_vault.py --changed <files>` demotes out-of-scope (legacy) errors to warnings tagged "pre-existing (run /synthmem repair)" so a clean run is never blocked forever by old issues. Resolves the v0.6.4 dry-run finding.
+- [x] Resolves the asymmetric-wikilinks watch-item: `repair` adds the missing reverse links (the ~79 case → 2 residual archive↔chat edges).
+
+### Coming in v0.6.6+ (reordered after the v0.6.4 dry-run finding)
+- [ ] **v0.6.6** `/synthmem status`: report vault size, last-run, pending sessions, errors.
+- [ ] **v0.6.7** `/synthmem --retry`: reprocess failed sessions explicitly.
+- [ ] **v0.6.8** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
 
 ### Watch-items (open findings, not yet scheduled)
-- ⚠️ **Asymmetric wikilinks**: the v0.6.2 test vault showed ~79 links where A→B exists but B→A does not. Likely a linker phase-2 gap (it adds the forward link but not always the reverse). Confirm on the next clean regeneration with v0.6.3 templates; if it persists, schedule a linker-symmetry fix (candidate v0.6.4.1 or fold into v0.6.7).
+- ⚠️ **Archive↔chat back-reference**: after `repair`, 2 residual asymmetric links remain where an `_archive_*` references a `chat_*` but the chat doesn't link back. Minor (non-blocking, REVIEW not FAIL). Repair's reverse-link pass reads `linked_nodes` only; archive→chat refs may live in the archive body. Refine `repair_vault.py` reverse-link scan to also honor compaction-style body refs (candidate v0.6.5.1 or fold into v0.6.8).
 
 ## v0.7 — Multi-IA support
 
