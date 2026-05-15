@@ -2,7 +2,7 @@
 id: YYYYMMDD-HHMMSS-xxx
 type: chat
 title: "<one-line session summary>"
-slug: YYYYMMDD-<short-id>
+slug: YYYYMMDD_<short-id>
 session_id: <session-uuid>
 started_at: YYYY-MM-DDTHH:MM:SS-HH:MM
 ended_at: YYYY-MM-DDTHH:MM:SS-HH:MM

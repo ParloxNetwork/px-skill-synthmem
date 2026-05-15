@@ -5,6 +5,23 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.3] — Validator (and the bugs it immediately caught)
+
+Added the deterministic vault validator from the hardening backlog. It earned its keep on first run by proving v0.6.2.1's distinctness fix was incomplete and surfacing a latent slug-convention inconsistency.
+
+### Added
+- `skill/scripts/validate_vault.py` — read-only, Python stdlib. Checks frontmatter completeness, `type`↔subdir placement, slug==filename-tail, 5 distinct tags, content-type vocabulary, ISO dates, broken/asymmetric/isolated wikilinks, dangling targets that should be stubs (≥3 refs), near-duplicate slugs/titles, raw `<…>`/pipe/leading-`#` markdown hazards, binaries, root cleanliness. Exit 5 on ERROR-level issues.
+- **Validation gate** in the pipeline: the indexer runs the validator before finalizing; `_state.json` is finalized only if zero ERROR-level issues, else `last_run_status: "partial"`.
+- **`/synthmem validate`** — read-only audit subcommand. Runs the validator against the existing vault, no consolidation, no writes. Cheap scale-testing.
+
+### Fixed (caught by the new validator)
+- **Meta templates still violated distinctness.** v0.6.2.1 only fixed `log.md`; `_INDEX.md` (`[meta, index, navigation, meta, vault]`), `_RECENT.md`, and `_archive.md` still had duplicate tags. Rewritten to 5 distinct tags each.
+- **Archive content-type.** Archives used `archive` in position 4 (not in the fixed vocabulary). Now `summary` (archives are period summaries).
+- **Chat slug convention inconsistency.** Chat slug was `YYYYMMDD-<id>` (hyphen) while the filename tail is `YYYYMMDD_<id>` (underscore) — 50 false-positive-looking warnings that were actually a real inconsistency. Canonical rule now documented and enforced: **slug == filename stem minus the type prefix, verbatim**. Time-keyed types (chat/log/archive) are exempt from kebab-only; semantic types (node/entity) keep kebab-case. `chat.md` template fixed; `vault-structure.md` "Slug rules" rewritten.
+
+### Notes
+The validator replaces ad-hoc LLM sanity-checking with a reproducible gate (v0.6.0 principle: mechanical work is scripted, not eyeballed). Vault-content warnings from the pre-v0.6.3 test vault (asymmetric links, etc.) clear naturally on the next `/synthmem` run with current templates. v0.6.4 next: `--dry-run`.
+
 ## [0.6.2.1] — Third-run polish
 
 The third real run validated v0.6.2 (0/32 isolated nodes, clean tags, church-context memory applied, no markdown breakage). Two small misses remained.

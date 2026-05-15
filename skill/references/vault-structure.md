@@ -142,19 +142,34 @@ Inside `archives/`, the `_archive_` prefix is kept for the same readability reas
 
 ## Slug rules
 
-The portion of the filename after the prefix must be:
+**Canonical rule (the validator enforces this):** the frontmatter `slug` MUST equal the filename stem with the type prefix stripped, **verbatim**.
 
+- `nodes/node_soteriology.md` → slug `soteriology`
+- `chats/chat_20260514_a1b2.md` → slug `20260514_a1b2`
+- `logs/log_20260514.md` → slug `20260514`
+- `archives/_archive_2026-W16.md` → slug `2026-W16`
+- `_INDEX.md` / `_RECENT.md` → slug `INDEX` / `RECENT` (meta files; case-insensitive)
+
+This guarantees slug ↔ filename consistency by construction and eliminates an entire class of validator warnings.
+
+### Semantic slugs (node_ / entity_)
+
+For knowledge files the slug is author-chosen and must be:
 - `kebab-case` (lowercase, hyphens, no spaces).
 - ASCII only (no accents — keeps grep portable).
 - ≤ 50 characters.
 - No leading / trailing hyphens.
 
-Examples:
-- ✅ `node_soteriology.md`
-- ✅ `chats/chat_20260514_a1b2.md`
-- ✅ `logs/log_20260514.md`
-- ❌ `node_Soteriología.md` (accent + capital)
-- ❌ `node_what_i_learned.md` (snake_case)
+✅ `node_soteriology.md`, `entity_claude-code.md`
+❌ `node_Soteriología.md` (accent + capital), `node_what_i_learned.md` (snake_case)
+
+### Time-keyed slugs (chat_ / log_ / _archive_)
+
+These are **not** kebab-case — they are date/id forms and may contain `_` and uppercase (`2026-W16`). They are exempt from the kebab-only rule because the filename tail *is* the slug. What matters is that `slug` == filename-tail exactly.
+
+✅ `chat_20260514_a1b2.md` slug `20260514_a1b2`
+✅ `_archive_2026-W16.md` slug `2026-W16`
+❌ `chat_20260514_a1b2.md` slug `20260514-a1b2` (hyphen ≠ filename's underscore)
 
 ## ID collision rule
 

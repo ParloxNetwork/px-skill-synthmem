@@ -15,6 +15,7 @@ Run the synthmem consolidation flow. Invokes the `synthmem` skill (installed at 
 | `/synthmem` | Default: run catch-up from `_state.json.last_run` to now. If first run, prompts once for the look-back window. |
 | `/synthmem init` | Bootstrap a new vault at `vault_path` (creates `_INDEX.md`, `_RECENT.md`, `_state.json`, `README.md`). Idempotent — won't clobber an existing vault. |
 | `/synthmem status` | Read-only. Reports last run, pending sessions, vault size, warnings. |
+| `/synthmem validate` | Read-only. Runs the deterministic vault validator (frontmatter, slugs, tags, wikilinks, duplicates, markdown safety) and prints PASS/REVIEW/FAIL. No consolidation, no writes. Cheap way to audit a large vault. |
 | `/synthmem --since YYYY-MM-DD` | Override the start of the catch-up window. |
 | `/synthmem --since 7d` | Same, but relative (`7d`, `2w`, `1m`). |
 | `/synthmem --dry-run` | Show what would happen without writing anything. |

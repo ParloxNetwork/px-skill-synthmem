@@ -18,8 +18,13 @@ When invoked you:
 5. **Link** new and existing files bidirectionally with `[[wikilinks]]` (use basenames, never include the subdirectory prefix).
 6. **Index** the vault: update `_INDEX.md` and `_RECENT.md` (both at the root).
 7. **Compact** old daily logs and chats into `archives/_archive_*.md` — **without deleting** original content. See `references/compaction-policy.md`.
-8. **Write** an end-of-run summary to today's `logs/log_YYYYMMDD.md`.
-9. After updating `_state.json` (per-day, see catch-up-logic), tell the user briefly what was done.
+8. **Validate**: run `scripts/validate_vault.py --vault ${VAULT_PATH}` (if Python available; otherwise do an inline equivalent check). Fold the `summary` + any errors/warnings into the daily log report. **Finalize `_state.json` only if there are zero ERROR-level issues**; if errors exist, leave `last_run_status: "partial"` and surface them prominently so the next run / the user can address them.
+9. **Write** an end-of-run summary to today's `logs/log_YYYYMMDD.md`.
+10. After updating `_state.json` (per-day, see catch-up-logic), tell the user briefly what was done — include the validation verdict (PASS / REVIEW / FAIL).
+
+### `/synthmem validate` — read-only audit mode
+
+If invoked as `/synthmem validate`, do **only** step 8 against the existing vault: run `validate_vault.py`, print the report, exit. No harvest, no distill, no writes, no `_state.json` change. This lets the user audit a large vault cheaply without reprocessing.
 
 The user expects to leave this running and come back later. **Do not ask clarifying questions mid-run unless something is genuinely blocking** (missing config, unreadable session directory, vault path doesn't exist). The **first-run** prompt is the single documented exception.
 

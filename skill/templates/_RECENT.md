@@ -3,7 +3,7 @@ id: 00000000-000000-rcn
 type: meta
 title: "Recent activity (last 14 days)"
 slug: RECENT
-tags: [meta, recent, navigation, meta, vault]
+tags: [recent-activity, navigation, knowledge-management, meta, vault-ops]
 status: active
 linked_nodes: []
 sources: []

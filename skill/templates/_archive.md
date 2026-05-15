@@ -2,11 +2,11 @@
 id: YYYYMMDD-HHMMSS-xxx
 type: archive
 title: "Archive — YYYY-WW (or YYYY-MM)"
-slug: archive_YYYY-WW
+slug: YYYY-WW
 tags:
-  - vault-meta
   - archive
   - history
+  - knowledge-management
   - summary
   - <project-tag>
 status: active

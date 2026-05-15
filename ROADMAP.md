@@ -47,8 +47,13 @@ Each item lands as its own patch release (v0.6.x).
 - [x] Distinctness invariant now applied to **logs** too: `templates/log.md` and the `tag-taxonomy.md` log example no longer repeat the project tag in a domain slot. Removed the contradicting "repeat is expected" note.
 - [x] Removed `last_skill_version` entirely (a hardcoded string that lagged the actual release — 0.6.1 vs 0.6.2). The vault now carries **no version field at all**; git tags/commits are the single source of truth. Supersedes the v0.6.1 line above.
 
-### Coming in v0.6.3+
-- [ ] **v0.6.3** Validator script: lints frontmatter, detects broken wikilinks, flags duplicate concepts.
+### v0.6.3 — validator
+- [x] `validate_vault.py`: deterministic read-only health check (frontmatter, slug==filename-tail, 5 distinct tags, content-type vocab, broken/asymmetric/isolated wikilinks, near-dup slugs/titles, markdown hazards, binaries). Exit 5 on errors.
+- [x] Validation gate: indexer runs it pre-finalize; `_state.json` finalized only if zero errors.
+- [x] `/synthmem validate` read-only subcommand (audit a big vault with no reprocess).
+- [x] Fixed bugs the validator caught: meta templates (`_INDEX`/`_RECENT`/`_archive`) had duplicate tags; archive content-type → `summary`; canonical slug rule (slug == filename-tail) documented + chat template fixed.
+
+### Coming in v0.6.4+
 - [ ] **v0.6.4** `--dry-run` mode: preview what `/synthmem` would do, without writing.
 - [ ] **v0.6.5** `/synthmem status`: report vault size, last-run, pending sessions, errors.
 - [ ] **v0.6.6** `/synthmem --retry`: reprocess failed sessions explicitly.

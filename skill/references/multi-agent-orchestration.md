@@ -171,18 +171,25 @@ For every `node_*` / `entity_*` written or touched this run, establish links to 
 - A final summary appended to today's `logs/log_YYYYMMDD.md` (creates `logs/` lazily on first write).
 - `_state.json` updated **after each day completes**, not only at the very end — see `catch-up-logic.md` for the resilience model.
 
+### 4b. Validation gate (always, not optional)
+
+After the indexer finishes and before the run is finalized, run the deterministic validator:
+
+```bash
+python3 ${SKILL_DIR}/scripts/validate_vault.py --vault ${VAULT_PATH}
+```
+
+(If Python is unavailable, perform the equivalent checks inline — see `validate_vault.py`'s docstring for the exact rule set.)
+
+- Parse the JSON `summary`. Append it + any `errors`/`warnings` to today's `logs/log_YYYYMMDD.md`.
+- **If `errors > 0`**: do **not** call `update_state.py --action finalize-run`. Instead leave `last_run_status: "partial"`, list the errors prominently in the report, and tell the user. The next run (or `/synthmem validate`) re-checks.
+- **If only warnings/info**: finalize normally; warnings are informational (e.g., asymmetric links that the next linker pass will reconcile, intentional dangling anchors).
+
+This replaces ad-hoc LLM "sanity checking" with a deterministic, reproducible gate — the same reason the other scripts exist (v0.6.0 principle: mechanical work is scripted, not eyeballed).
+
 ### 5. `reviewer` (optional, off by default)
 
-**Job:** Sanity-check the run before exit. Look for:
-- Frontmatter that doesn't parse
-- Duplicate slugs
-- Tags outside the taxonomy
-- Wikilinks to non-existent files
-- Files written outside the prefix system
-
-**Outputs:** a `WARNINGS` section appended to today's log if anything is off. Does **not** auto-correct — flags only.
-
-Enable via `_local/config.json` → `agents.reviewer: true`.
+The validator (4b) covers the mechanical checks. The optional `reviewer` adds **semantic** review the validator can't do: is a node actually substantive, are tags *accurate* (not just well-formed), did the distiller miss an obvious concept. Flags only — never auto-corrects. Enable via `_local/config.json` → `agents.reviewer: true`.
 
 ## Dispatch
 

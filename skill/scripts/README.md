@@ -21,6 +21,7 @@ Optional Python helpers that accelerate `/synthmem` runs.
 | `2` | I/O error |
 | `3` | File not found or unparseable |
 | `4` | Invalid action / value |
+| `5` | Validation found ERROR-level issues (`validate_vault.py` only) |
 
 The skill interprets exit codes without parsing stdout (stdout is reserved for the JSON payload, stderr for human-readable errors).
 
@@ -38,6 +39,26 @@ python3 find_sessions.py \
 ```
 
 **Stdout**: JSON array `[{session_id, jsonl_path, project_dir, started_at, ended_at}, ...]`
+
+### `validate_vault.py`
+
+Deterministic, read-only health check. Never modifies the vault — reports only.
+
+```bash
+# JSON (for the skill to parse)
+python3 validate_vault.py --vault /path/to/vault
+
+# Human-readable
+python3 validate_vault.py --vault /path/to/vault --format text
+```
+
+Checks: frontmatter completeness, `type`↔subdir, slug==filename-tail, 5 distinct tags, content-type vocabulary, ISO dates, broken/asymmetric/isolated wikilinks, dangling targets that should be stubs (≥3 refs), near-duplicate slugs/titles, raw `<...>`/pipe/leading-`#` markdown hazards, binaries, root cleanliness.
+
+**Stdout**: JSON `{summary:{errors,warnings,info,verdict}, errors[], warnings[], info[]}`. **Exit 5** if any ERROR-level issue (so a CI step or the skill can gate on it); exit 0 if only warnings/info.
+
+Two ways it runs:
+- **End of every `/synthmem`** — the indexer invokes it; findings go into the daily log report and `_state.json` is finalized only if there are no ERRORs.
+- **Standalone** `/synthmem validate` — read-only, no consolidation. Cheap way to audit a large existing vault without reprocessing.
 
 ### `parse_session.py`
 

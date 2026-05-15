@@ -3,7 +3,7 @@ id: 00000000-000000-idx
 type: meta
 title: "Vault index"
 slug: INDEX
-tags: [meta, index, navigation, meta, vault]
+tags: [vault-index, navigation, knowledge-management, meta, vault-ops]
 status: active
 linked_nodes: []
 sources: []
