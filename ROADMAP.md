@@ -17,8 +17,14 @@ Synthmem is built incrementally. v0.5 is the first public-shaped scaffold; later
 - [x] AGPL-3.0-or-later license.
 - [x] YAGNI directory rule: new subdirectories only when ≥ 20 same-type files accumulate.
 
-## v0.6 — Hardening
+## v0.6 — Hardening (in progress)
 
+- [x] Helper scripts in `skill/scripts/` (Python stdlib; graceful fallback if missing).
+  - `find_sessions.py` — list sessions overlapping a date range.
+  - `parse_session.py` — structured turns from one JSONL.
+  - `update_state.py` — atomic mutations on `_state.json` with file locking.
+- [x] Long-session chunking: distiller processes sessions >100 turns in 50-turn chunks.
+- [x] Autonomous bucket creation: ≥20-file prefix patterns trigger bucket creation + reporting (no user intervention required).
 - [ ] Validator script: lints frontmatter, detects broken wikilinks, flags duplicate concepts.
 - [ ] `--dry-run` mode: preview what `/synthmem` would do, without writing.
 - [ ] `/synthmem status`: report vault size, last-run, pending sessions, errors.

@@ -9,6 +9,18 @@
   - A git-tracked folder (recommended — versioned history of your memory)
 - **Obsidian** (optional, for graph view and pretty reading).
 
+### Optional acceleration: Python 3.8+
+
+The skill ships with helper scripts in `skill/scripts/` that parse Claude Code session transcripts and update state files atomically. If Python 3.8+ is on your PATH, the skill uses them and runs are noticeably faster and cheaper in tokens.
+
+**Without Python**, the skill falls back to inline AI parsing — it still works, just slower and more token-expensive per run. No action needed; the skill detects what's available at runtime.
+
+Check if you have Python 3:
+```bash
+python3 --version
+```
+If it prints `Python 3.8.x` or higher, you're set.
+
 ## Steps
 
 ### 1. Clone this repo

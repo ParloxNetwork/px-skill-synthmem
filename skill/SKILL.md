@@ -23,7 +23,25 @@ When invoked you:
 
 The user expects to leave this running and come back later. **Do not ask clarifying questions mid-run unless something is genuinely blocking** (missing config, unreadable session directory, vault path doesn't exist). The **first-run** prompt is the single documented exception.
 
-## Multi-agent orchestration (default for v0.5)
+## Tooling detection (do this FIRST in every run)
+
+Helper scripts in `${SKILL_DIR}/scripts/` accelerate session parsing and state updates. Detect availability at the start of every run:
+
+```bash
+command -v python3 >/dev/null 2>&1 \
+  && [ -f "${SKILL_DIR}/scripts/find_sessions.py" ] \
+  && echo "scripts_ok" \
+  || echo "fallback"
+```
+
+- **`scripts_ok`** → call `find_sessions.py`, `parse_session.py`, `update_state.py` via `Bash` for all mechanical work (JSONL parsing, state mutations). Fast, deterministic.
+- **`fallback`** → parse inline using the rules in `references/session-source.md`, and update `_state.json` by Read + Edit (with extra care for atomicity). Slower and more token-expensive, but functional.
+
+If a script invocation fails (non-zero exit), fall back inline for that operation and continue. Note tooling mode in the run report.
+
+See `scripts/README.md` for the full contract and exit-code conventions.
+
+## Multi-agent orchestration (default)
 
 Dispatch sub-agents in parallel using the `Agent` tool. The pipeline:
 
@@ -31,7 +49,7 @@ Dispatch sub-agents in parallel using the `Agent` tool. The pipeline:
 harvester → distiller → linker → indexer
 ```
 
-See `references/multi-agent-orchestration.md` for each sub-agent's contract.
+See `references/multi-agent-orchestration.md` for each sub-agent's contract, including the long-session chunking rule (sessions with > 100 turns must be processed in 50-turn chunks by the distiller).
 
 For tiny runs (one short session, init-only) you may do this inline without spawning sub-agents. The orchestrator decides per run.
 
@@ -69,7 +87,7 @@ These are non-negotiable. They protect the user's data and privacy.
 6. **Never reveal personal paths or names in the skill code itself.** All personal data flows through `_local/config.json`, never hardcoded.
 7. **Never run destructive shell commands** (`rm -rf`, `git reset --hard`, etc.) against the vault.
 8. **Never move user-created files.** If the user placed a file at the root or in a subdir of their own making, leave it alone on subsequent runs.
-9. **Never create speculative subdirectories.** Only the 3 standard ones (`chats/`, `logs/`, `archives/`), and only when actually writing into them. Additional buckets require the YAGNI threshold (see `references/vault-structure.md`).
+9. **Never create speculative subdirectories.** Only the 3 standard ones (`chats/`, `logs/`, `archives/`), and only when actually writing into them. Additional buckets are created **autonomously** but only when the YAGNI threshold (≥ 20 files of a distinct prefix at the root) is crossed — see `references/vault-structure.md`. New buckets must always be reported in `logs/log_YYYYMMDD.md`.
 10. **If anything is ambiguous or risky, stop and report**, do not guess.
 
 ## When you should NOT trigger this skill
@@ -97,6 +115,7 @@ Before you stop, append a short report to today's `logs/log_YYYYMMDD.md`:
 
 ```markdown
 ## Run report (YYYY-MM-DD HH:MM)
+- Tooling: scripts_ok | fallback
 - Sessions processed: <N>
 - Date range: YYYY-MM-DD → YYYY-MM-DD
 - New nodes: <list of slugs>
@@ -104,6 +123,7 @@ Before you stop, append a short report to today's `logs/log_YYYYMMDD.md`:
 - Updated nodes: <list of slugs>
 - Archived: <count of files moved to archives/>
 - Subdirectories created this run: <list, if any>
+- Buckets auto-created: <e.g. "decisions/ (23 decision-* files moved in)">
 - Warnings: <anything the user should know>
 - Errors / retries needed: <session ids, if any>
 ```

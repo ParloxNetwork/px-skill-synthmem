@@ -47,6 +47,21 @@ A single long-running Claude session would carry the entire vault, all session t
 
 **Must not:** create `node_*` or `entity_*` files (that's the distiller's job).
 
+### Handling long sessions (chunking rule)
+
+A single Claude Code session can have hundreds of turns. Loading all of them into a distiller's context at once is wasteful and may overflow the budget.
+
+**Rule**: if a session has more than **100 turns**, the distiller MUST process it in chunks of 50 turns:
+
+1. Read turns 1–50 → produce intermediate summary `chunk_1`.
+2. Read turns 51–100 → produce `chunk_2`, given `chunk_1` as context.
+3. Continue until all turns are covered.
+4. Synthesize the final `chat_*.md` from the chunk summaries.
+
+This responsibility lives **inside the distiller sub-agent**, not the orchestrator. The chunking is invisible from outside — the distiller still produces exactly one `chat_*.md` per session.
+
+For sessions ≤ 100 turns, the distiller processes them in one pass.
+
 ### 2. `distiller`
 
 **Job:** Take the candidate list from the harvester and produce/update `node_*.md` and `entity_*.md` files.

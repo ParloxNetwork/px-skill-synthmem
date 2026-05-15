@@ -58,30 +58,48 @@ vault-root/
 
 …and grows organically as content actually arrives.
 
-## Creating new subdirectories — the YAGNI rule
+## Creating new subdirectories — the YAGNI rule (autonomous)
 
-The 3 standard subdirectories (`chats/`, `logs/`, `archives/`) are the only ones the skill is allowed to create automatically.
+The 3 standard subdirectories (`chats/`, `logs/`, `archives/`) are the standard set the skill creates lazily on first use.
 
-The skill MAY propose a new subdirectory only when **all** of these hold:
+The skill MAY **autonomously create** a new subdirectory when:
 
-1. A clearly distinct file-type category has emerged in real use.
-2. That category has accumulated **≥ 20 files** of its own type at the root.
-3. Keeping them at the root would visibly degrade navigation (the user has flagged it, OR the AI has documented the pattern in two prior run reports).
+1. A distinct filename-prefix pattern has emerged at the root.
+2. That pattern has accumulated **≥ 20 files** matching `<prefix>-*.md` or `<prefix>_*.md`.
+3. The prefix is not one of `node`, `entity`, `log`, `chat`, or an underscore-prefixed meta name.
 
-*Would* justify a new bucket:
-- `decisions/` — if `decision-*` files accumulate beyond 20.
-- `recipes/` — same threshold, same logic.
+Detection is cheap (one bash invocation during indexing):
 
-*Would not* justify it:
-- A handful of edge-case files (< 20). Leave them at the root.
-- Speculation about what might be useful later. Don't preempt.
+```bash
+# At the root, group files by their leading prefix (everything before the first - or _)
+ls "$VAULT_PATH"/*.md 2>/dev/null \
+  | xargs -n1 basename \
+  | grep -vE '^(node|entity|log|chat|_)' \
+  | sed -E 's/^([a-z0-9]+)[-_].*/\1/' \
+  | sort | uniq -c | awk '$1 >= 20 {print $2, $1}'
+```
 
-When the skill creates a new bucket, it must:
-- Note the creation in the next run report (in `log_*.md`).
-- Add a one-line entry under a "Custom buckets" section in `_INDEX.md`.
-- Move existing same-type files into the new bucket in the same run.
+When the threshold is crossed for prefix `<p>`, the skill **in the same run**:
 
-If the user later prefers a different layout, they `mv` files manually; the skill respects user-made moves on subsequent runs (it does not re-shuffle them).
+1. Creates the directory `<p>s/` (plural — `decision` → `decisions/`, `recipe` → `recipes/`).
+2. Moves all matching `<p>-*.md` and `<p>_*.md` files into it.
+3. Adds a one-line entry under a "Custom buckets" section in `_INDEX.md`.
+4. Records the bucket creation in today's `logs/log_YYYYMMDD.md` under `## 🪣 Buckets auto-created`:
+
+   ```markdown
+   ## 🪣 Buckets auto-created
+   - `decisions/` (23 `decision-*` files moved in)
+     Rationale: prefix pattern crossed the 20-file YAGNI threshold.
+   ```
+
+### Safety bounds on autonomous creation
+
+- **Max one new bucket per run.** Avoids surprise reorganization.
+- **Move only — never delete.** Wikilinks survive because they use basenames.
+- **Respect user moves.** If the user has `mv`ed a file by hand into or out of a bucket, the skill does not re-shuffle it on subsequent runs.
+- **Never re-create a bucket the user explicitly removed** (heuristic: if the directory was deleted and its files manually placed back at the root, do not re-create — log a warning instead).
+
+If the user disagrees with a bucket the skill created, they `mv` the files back and `rmdir` the empty directory. Next run notices the move and respects it.
 
 ## Wikilinks across subdirectories
 
