@@ -53,11 +53,16 @@ Each item lands as its own patch release (v0.6.x).
 - [x] `/synthmem validate` read-only subcommand (audit a big vault with no reprocess).
 - [x] Fixed bugs the validator caught: meta templates (`_INDEX`/`_RECENT`/`_archive`) had duplicate tags; archive content-type → `summary`; canonical slug rule (slug == filename-tail) documented + chat template fixed.
 
-### Coming in v0.6.4+
-- [ ] **v0.6.4** `--dry-run` mode: preview what `/synthmem` would do, without writing.
+### v0.6.4 — `--dry-run`
+- [x] `/synthmem --dry-run`: full read-only preview (config + window + harvest + metadata-level plan), prints a plan, writes nothing (no files, no subdirs, no `_state.json`). Guardrail #13. Sub-agent dry-run contracts documented.
+
+### Coming in v0.6.5+
 - [ ] **v0.6.5** `/synthmem status`: report vault size, last-run, pending sessions, errors.
 - [ ] **v0.6.6** `/synthmem --retry`: reprocess failed sessions explicitly.
 - [ ] **v0.6.7** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
+
+### Watch-items (open findings, not yet scheduled)
+- ⚠️ **Asymmetric wikilinks**: the v0.6.2 test vault showed ~79 links where A→B exists but B→A does not. Likely a linker phase-2 gap (it adds the forward link but not always the reverse). Confirm on the next clean regeneration with v0.6.3 templates; if it persists, schedule a linker-symmetry fix (candidate v0.6.4.1 or fold into v0.6.7).
 
 ## v0.7 — Multi-IA support
 

@@ -124,7 +124,9 @@ This per-day commit cadence is the key resilience feature: a process kill, power
 
 ### Step 5 — Final state update
 
-When all days in the window succeed, finalize `_state.json`:
+**Skipped entirely in `--dry-run`.** A dry run computes the window and the plan but never touches `_state.json` (nor anything else under the vault). The next real run sees exactly the same state as if the dry run never happened.
+
+When all days in the window succeed (real run only), finalize `_state.json`:
 
 ```json
 {

@@ -5,6 +5,16 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.4] — `--dry-run` preview mode
+
+### Added
+- **`/synthmem --dry-run`**: full read-only preview. Resolves config, computes the catch-up window, harvests sessions, and runs a metadata-level planning pass (which nodes/entities it would create/update/merge, slug + 5 tags, wikilink edges, compaction moves, bucket creation). Prints one structured plan to the chat and exits having written **nothing** — no files, no lazy subdirs, no `_state.json`. Combines with `--since`/window flags.
+- Hard guardrail #13: a dry run that mutates the vault is a critical bug; every would-be write becomes a plan line instead.
+- Sub-agent dry-run contracts documented (harvester runs normally as it is already read-only; distiller plans-only; linker computes edge counts; indexer computes-but-does-not-write; validation gate runs against the unchanged vault as a baseline + predicts the post-run verdict).
+
+### Notes
+No script needed — dry-run is a behavior, not a tool (YAGNI). The cheap, safe answer to "what would happen if I run this after 3 weeks away?". v0.6.5 next: `/synthmem status`.
+
 ## [0.6.3] — Validator (and the bugs it immediately caught)
 
 Added the deterministic vault validator from the hardening backlog. It earned its keep on first run by proving v0.6.2.1's distinctness fix was incomplete and surfacing a latent slug-convention inconsistency.

@@ -203,6 +203,18 @@ Each sub-agent's prompt should include:
 
 Sub-agents must **not** call the main `/synthmem` recursively.
 
+## Dry-run behavior
+
+When the run is `--dry-run`, the pipeline still executes but in plan-only mode:
+
+- **harvester**: runs normally — it is already read-only (parses JSONL, writes nothing to the vault). Produces the same handoff.
+- **distiller**: runs a **planning pass**. It decides, per concept: create vs update vs merge, the target slug, the 5 tags, the candidate wikilinks. It does **not** generate full bodies and does **not** write files. Its handoff lists intended actions only.
+- **linker**: computes the edges it *would* add (count + sample) from the distiller's plan. Writes nothing.
+- **indexer**: does **not** regenerate `_INDEX.md`/`_RECENT.md`, does **not** call `update_state.py`, does **not** compact. It computes what it *would* archive and folds the whole plan into the single chat-only report (see SKILL.md `--dry-run`).
+- **validation gate**: runs `validate_vault.py` against the *current* (unchanged) vault to give a baseline, and predicts the post-run verdict from the plan. No state change.
+
+The orchestrator is responsible for enforcing the "write nothing" guardrail even if a sub-agent misbehaves: in dry-run, reject any handoff that claims to have written a file.
+
 ## Failure modes
 
 If a sub-agent fails:

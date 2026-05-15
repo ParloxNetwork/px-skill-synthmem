@@ -18,7 +18,7 @@ Run the synthmem consolidation flow. Invokes the `synthmem` skill (installed at 
 | `/synthmem validate` | Read-only. Runs the deterministic vault validator (frontmatter, slugs, tags, wikilinks, duplicates, markdown safety) and prints PASS/REVIEW/FAIL. No consolidation, no writes. Cheap way to audit a large vault. |
 | `/synthmem --since YYYY-MM-DD` | Override the start of the catch-up window. |
 | `/synthmem --since 7d` | Same, but relative (`7d`, `2w`, `1m`). |
-| `/synthmem --dry-run` | Show what would happen without writing anything. |
+| `/synthmem --dry-run` | Preview only. Resolves config, computes the window, harvests sessions, and plans the distillation/linking/compaction at the metadata level — then prints a structured plan and exits having written **nothing** (no files, no subdirs, no `_state.json`). Combine with `--since`. The safe "what would happen if I run this?" check. |
 
 ## What it does
 

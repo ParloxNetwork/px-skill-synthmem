@@ -26,6 +26,35 @@ When invoked you:
 
 If invoked as `/synthmem validate`, do **only** step 8 against the existing vault: run `validate_vault.py`, print the report, exit. No harvest, no distill, no writes, no `_state.json` change. This lets the user audit a large vault cheaply without reprocessing.
 
+### `/synthmem --dry-run` — preview, write nothing
+
+If invoked with `--dry-run`, produce a **plan** of what a real run would do, then exit having written **nothing**.
+
+Allowed (all read-only): resolve config, compute the time window, harvest sessions (`find_sessions.py` + `parse_session.py`), and a **planning pass** of the distiller — decide which `node_*`/`entity_*` it would create / update / merge, the slug + 5 tags it would assign, the wikilinks it would add, which files compaction would archive, any bucket it would auto-create. Do **not** generate full node bodies (metadata-level plan only — keeps it cheap).
+
+**Hard prohibition in dry-run** (this is a guardrail, not a preference): no `Write`/`Edit` anywhere under `${VAULT_PATH}`, no `mkdir` of subdirectories, no `update_state.py`, no compaction moves. If any step would write, it instead records the intent into the plan.
+
+Output a single structured report **to the chat** (never to a file):
+
+```
+DRY RUN — no changes written. Vault: ${VAULT_PATH}
+
+Window: <from> → <now>   (<N> sessions across <D> days)
+Tooling: scripts_ok | fallback
+
+Would create:  <X> nodes, <Y> entities, <Z> chats, <W> logs
+Would update:  <list of existing slugs + why>
+Would merge:   <a → b (reason)>
+Would link:    ~<E> new wikilink edges
+Would archive: <files compaction would move>
+Would create buckets: <name/ (reason) | none>
+Validation prediction: <PASS | REVIEW | FAIL with expected issues>
+
+Run `/synthmem` (no --dry-run) to apply.
+```
+
+`--dry-run` may combine with `--since`/window flags. It is the safe way to answer "what happens if I run this after 3 weeks away?" without committing.
+
 The user expects to leave this running and come back later. **Do not ask clarifying questions mid-run unless something is genuinely blocking** (missing config, unreadable session directory, vault path doesn't exist). The **first-run** prompt is the single documented exception.
 
 ## Tooling detection (do this FIRST in every run)
@@ -100,7 +129,8 @@ These are non-negotiable. They protect the user's data and privacy.
 10. **Never emit raw Markdown-breaking characters in generated content.** Any literal `<` / `>` (paths, placeholders, generics like `<proj>`, env vars, shell snippets) MUST be wrapped in backticks (`` `~/.claude/projects/<proj>/` ``) or escaped (`&lt;` / `&gt;`). Obsidian and most renderers parse a bare `<word>` as an unclosed HTML tag and silently destroy everything after it — including subsequent headings and list items. This applies to `_INDEX.md`, `_RECENT.md`, node/entity bodies, log reports — *every* generated file. See `references/frontmatter-spec.md` → "Markdown-safe output".
 11. **Never create `status: draft` stub files for one-off dangling wikilinks.** Leave them unresolved (Obsidian "create new" anchors). Only materialize a draft stub when a dangling target is referenced by ≥ 3 distinct files. See `references/vault-structure.md`.
 12. **The linker must produce node↔node links, not just chat↔node.** An isolated `node_*` (`linked_nodes: []`) after a run is a linker failure. See `references/multi-agent-orchestration.md` → linker phase 2.
-13. **If anything is ambiguous or risky, stop and report**, do not guess.
+13. **In `--dry-run`, write absolutely nothing.** No `Write`/`Edit` under `${VAULT_PATH}`, no subdirectory `mkdir`, no `update_state.py`, no compaction moves. A dry run that mutates the vault is a critical bug. Every would-be write becomes a line in the plan report instead.
+14. **If anything is ambiguous or risky, stop and report**, do not guess.
 
 ## When you should NOT trigger this skill
 
