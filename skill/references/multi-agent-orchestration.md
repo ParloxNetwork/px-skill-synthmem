@@ -93,12 +93,20 @@ If none holds, the concept becomes either:
 - A bullet under "Concepts touched" in the relevant `chat_*.md` (default), **or**
 - An `## Update YYYY-MM-DD` section appended to an existing related `node_*.md` (preferred when there is a clear parent concept).
 
-### Aggressive merging — slug-root collision
+### Conservative merging — only when truly the same concept
 
-Before creating `node_<slug>`, the distiller searches for any existing file in `nodes/` whose slug starts with the same root token (everything before the first `-`):
+Before creating `node_<slug>`, the distiller checks for an existing node that is **the same concept**, not merely one that shares a leading word. Merge **only** if **both** hold:
 
-- Existing: `node_synthmem-skill.md`. Proposed: `node_synthmem-helper-scripts.md`. **Merge** into the existing one as a new `## Update` section.
-- Existing: `node_claude-code.md`. Proposed: `node_claude-code-content-filter.md`. **Merge** unless the new concept is independently substantive (>= 200 words AND not a sub-aspect of the parent).
+1. **Slug containment**: one slug is a strict prefix of the other (`node_justification` vs `node_justification-doctrine`) OR the titles are near-identical (case/stopword-insensitive).
+2. **Content overlap**: the two cover the same core idea, not two different aspects of a shared umbrella.
+
+Do **NOT** merge solely because slugs share a leading token. These are distinct concepts and must stay separate:
+- `node_claude-code-memory` vs `node_claude-code-greeting` — different topics; keep both.
+- `node_sermon-skill-flow` vs `node_sermon-spa-modes` — different aspects; keep both.
+
+When two nodes are related but distinct, **do not merge — link them** (add each to the other's `linked_nodes`; the linker enforces this).
+
+When uncertain, **keep separate and link**. A wrong merge destroys information and is hard to undo; an extra link is cheap and reversible.
 
 The same rule applies to `entity_*` files.
 
@@ -108,20 +116,43 @@ Without the quality bar, a single active day floods the vault with low-signal no
 
 ### 3. `linker`
 
-**Job:** Enforce bidirectional wikilinks.
+**Job:** Build the knowledge graph. This is the linker's core value — without it the vault is a pile of disconnected notes, not a "third brain". The linker has **two phases**; phase 2 is the one that was missing in v0.6.1 and matters most.
 
 **Inputs:**
 - The distiller's handoff JSON
-- Vault path
+- Vault path (full read access to `nodes/`, `entities/`, `chats/`)
 
-**Logic:**
-- For each file touched by the distiller, parse its `linked_nodes` list.
-- For each `[[target]]` in the list, open `target.md` and ensure `linked_nodes` contains a back-link to the source.
-- Detect and remove broken wikilinks (target file doesn't exist) — log them as warnings rather than deleting silently.
+#### Phase 1 — provenance bidirectionality (chat ↔ node/entity)
+
+- For each file touched this run, parse its `sources:` and `linked_nodes:`.
+- For every `[[target]]`, open the target and ensure the reverse reference exists.
+- This is necessary but **not sufficient**. A vault where nodes only connect through chat hubs has a star topology, not a knowledge graph.
+
+#### Phase 2 — semantic node↔node linking (REQUIRED, was missing)
+
+For every `node_*` / `entity_*` written or touched this run, establish links to other **nodes/entities** (not just chats):
+
+1. **Explicit mention**: if node A's body names a concept that has its own `node_B` (slug, title, or a declared synonym appears in A's prose), add `[[node_B]]` to A's `linked_nodes` and `[[node_A]]` to B's. Bidirectional, always.
+2. **Shared-domain affinity**: if two nodes share **≥ 2 of their 3 domain tags** AND their content is topically related (not just coincidentally co-tagged), link them.
+3. **Parent/child**: if one node is a specialization of another (e.g., `node_compaction-policy` ⊂ `node_vault-hybrid-layout`), link both ways.
+
+**Bounds (avoid the hairball):**
+- Max **7** `linked_nodes` per file. If more candidates exist, keep the strongest (explicit mention > parent/child > shared-domain).
+- Never link a node to itself.
+- Shared-domain affinity alone, with no content relation, is **not** enough — require a real conceptual relationship. Tag co-occurrence is a hint, not a link.
+
+**Acceptance check before finishing:** if more than ~30% of nodes touched this run still have `linked_nodes: []`, the linker has under-performed — re-scan those isolated nodes for phase-2 candidates before handing off. An isolated node is a linker failure, not a normal outcome.
+
+#### Broken / dangling wikilinks
+
+- A `[[target]]` with no matching file is **left as-is** (unresolved). It is a deliberate anchor: Obsidian shows it as "create new", and a future run that creates the target auto-resolves it (basenames match).
+- Do **not** create `status: draft` stub files for dangling links — that clutters the vault with empties.
+- **Exception**: if the same dangling target is referenced by **≥ 3 distinct files**, that is a strong signal the concept matters → create one real `status: draft` node with a `TODO: define` and link it. Report it.
+- Report the count of unresolved links in the handoff (informational, not an error).
 
 **Outputs:**
-- Updated files (only `linked_nodes` and `last_updated` fields change)
-- A handoff JSON: links added, links removed, warnings.
+- Updated files (`linked_nodes` and `last_updated` only; never rewrites body content).
+- A handoff JSON: phase-1 backlinks added, phase-2 semantic links added, dangling-link count, any draft stubs created (with the ≥3 reason).
 
 ### 4. `indexer`
 

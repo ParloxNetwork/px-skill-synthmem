@@ -5,6 +5,24 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.2] — Corrections from second real run (graph + tags + render safety)
+
+The first full month-scale run worked structurally (clean root, typed subdirs, quality bar held) but surfaced six issues — four spec/behavior gaps and two reported by the user. No new features.
+
+### Fixed
+- **Linker now builds an actual graph (critical).** v0.6.1 produced 51/53 nodes with `linked_nodes: []` — nodes connected only through chat hubs (star topology, not a knowledge graph). The linker spec now has an explicit **phase 2: semantic node↔node linking** (explicit mention, shared-domain affinity, parent/child), bounded to ≤7 links/node, with an acceptance check (>30% isolated nodes = linker failure, must re-scan).
+- **Tag assignment order (5 → 4 → 3) with distinctness invariant.** v0.6.1 picked domain tags first and frequently echoed one in the project/content-type slot (`[teologia-sistematica, …, reference, teologia]`; `synthmem-dev` in positions 1 and 5). Now: project context resolved first (a real project, never a topic), content-type second, then 3 domain tags that must not collide with positions 4–5. All 5 tags must be unique.
+- **Conservative merge rule.** The v0.6.0/0.6.1 "merge if slugs share the token before the first `-`" rule would have collapsed 9 distinct `claude-code-*` nodes into one. Rewritten: merge only on slug-containment/near-identical-title **and** content overlap; otherwise keep separate and link.
+- **Dangling wikilinks left unresolved (spec aligned to behavior).** Spec previously said "create a `status: draft` stub" for every dangling link; real behavior (leaving them as Obsidian "create new" anchors) is better. Spec now matches: stubs only when a target is referenced by ≥ 3 distinct files.
+- **Markdown-safe output (user-reported).** A bare `<proj>` in a path inside `_INDEX.md` was parsed by Obsidian as an unclosed HTML tag, destroying rendering of everything below it (headings included). New hard guardrail + `frontmatter-spec.md` → "Markdown-safe output": backtick or escape `<`, `>`, stray `|`, leading `#` in all generated files; final pass before every write.
+
+### Changed
+- `SKILL.md` hard guardrails extended (markdown safety, dangling-link policy, linker-must-graph) and renumbered.
+- `tag-taxonomy.md`, `frontmatter-spec.md`, `multi-agent-orchestration.md` rewritten in the affected sections.
+
+### Notes
+v0.6.2 closes the second corrections cycle. Vault structure and human-readability (the user explicitly browses it in Obsidian) are now the priority bar alongside "frontmatter parses". v0.6.3+ resume the hardening backlog (validator, dry-run, status, retry, tag linter).
+
 ## [0.6.1] — Corrections from first real run
 
 After the first end-to-end `/synthmem` run, five issues surfaced that this release fixes. No new features.

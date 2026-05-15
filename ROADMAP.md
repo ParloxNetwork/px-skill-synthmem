@@ -36,12 +36,19 @@ Each item lands as its own patch release (v0.6.x).
 - [x] `first_run_default` config flag: `ask | today | full | <N>d`. Default `ask`. Fallback to `today` in non-interactive runtimes.
 - [x] Removed `vault_version` from `_state.json`; added `last_skill_version` (informational). Git history is the vault's own changelog.
 
-### Coming in v0.6.2+
-- [ ] **v0.6.2** Validator script: lints frontmatter, detects broken wikilinks, flags duplicate concepts.
-- [ ] **v0.6.3** `--dry-run` mode: preview what `/synthmem` would do, without writing.
-- [ ] **v0.6.4** `/synthmem status`: report vault size, last-run, pending sessions, errors.
-- [ ] **v0.6.5** `/synthmem --retry`: reprocess failed sessions explicitly.
-- [ ] **v0.6.6** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
+### v0.6.2 — corrections from second real run (graph + tags + render safety)
+- [x] Linker phase 2: semantic node↔node linking (was star topology; 51/53 nodes were isolated).
+- [x] Tag assignment order 5→4→3 with distinctness invariant (project never echoes a domain).
+- [x] Conservative merge rule (no more "same leading token" over-merging).
+- [x] Dangling wikilinks left unresolved; draft stub only at ≥3 references (spec aligned to behavior).
+- [x] Markdown-safe output: backtick/escape `<` `>` `|` leading-`#` in all generated files (Obsidian render fix).
+
+### Coming in v0.6.3+
+- [ ] **v0.6.3** Validator script: lints frontmatter, detects broken wikilinks, flags duplicate concepts.
+- [ ] **v0.6.4** `--dry-run` mode: preview what `/synthmem` would do, without writing.
+- [ ] **v0.6.5** `/synthmem status`: report vault size, last-run, pending sessions, errors.
+- [ ] **v0.6.6** `/synthmem --retry`: reprocess failed sessions explicitly.
+- [ ] **v0.6.7** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
 
 ## v0.7 — Multi-IA support
 

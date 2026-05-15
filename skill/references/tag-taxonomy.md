@@ -16,6 +16,24 @@ Total: 5.
 - **Searchable from outside the skill.** `grep '^- sermon-prep$'` on the `tags:` block works.
 - **Forces specificity.** Five is enough to be expressive, few enough that the AI must choose carefully.
 
+## Assignment ORDER — resolve 5 → 4 → 3, never the reverse
+
+A v0.6.1 bug: the AI picked the 3 domain tags first, then often repeated one of them in the project (5) or content-type (4) slot — e.g. `[teologia-sistematica, atributos-de-dios, homiletics, reference, teologia]` where position 5 (`teologia`) is just a generic echo of position 1, not a project. Or `[synthmem-dev, …, …, concept, synthmem-dev]` with position 1 == position 5.
+
+To prevent this, resolve tags in **reverse order of constraint**:
+
+1. **Position 5 — project context — FIRST.** Pick the real project/life context. Source priority:
+   - An explicit project signal in the session (working dir, repo name, "this is for the sermon", etc.).
+   - Else `config.default_project_tag`.
+   - Sermon / homiletic / theology-for-church content → `sermon-prep` or `alianza-republica`, **never** a doctrine word like `teologia`. (The user's church context: principal pastor Pr. Luis Solís, Iglesia Alianza República — treat ministry work as a real project, not a topic.)
+   - A project tag is a *context*, never a *topic*. `synthmem-dev`, `sermon-prep`, `infra`, `client-x`, `personal` — yes. `theology`, `python`, `markdown` — no.
+
+2. **Position 4 — content-type — SECOND.** Exactly one from the fixed vocabulary (see below).
+
+3. **Positions 1–3 — domain — LAST.** Pick the 3 most specific domain tags **that are not already used in position 4 or 5**. If a strong domain candidate collides with the project or content-type tag, drop it and take the next-best specific tag.
+
+**Distinctness invariant:** all 5 tags MUST be unique. No tag may appear twice across the five positions. If after selection a collision remains, the domain tags (picked last, most fungible) yield — never the project or content-type.
+
 ## Specificity rule — read this carefully
 
 **Prefer the most specific accurate tag.** Do not default to umbrella terms.
@@ -60,17 +78,19 @@ If you find yourself wanting to introduce a new content-type tag, **don't** — 
 
 ## Project-context tags (position 5) — extensible
 
-This position identifies the project, client, or life context the content belongs to. Pulled from `_local/config.json` (`default_project_tag`) or inferred from the session.
+This position identifies the **project / client / life context** — never a topic. Resolved FIRST (see "Assignment ORDER" above). Pulled from a session project signal, else `config.default_project_tag`.
 
-Examples:
-- `sermon-prep`
-- `synthmem-dev`
-- `client-acme`
-- `personal`
-- `health`
-- `family`
+Valid (contexts):
+- `sermon-prep` / `alianza-republica` — ministry work for the user's church (Iglesia Alianza República, Pr. Luis Solís)
+- `synthmem-dev` — work on this skill
+- `infra` — server / tooling / migrations
+- `client-acme` — a specific client
+- `personal`, `health`, `family` — life contexts
 
-Should be kebab-case. The user's `_local/taxonomy.overrides.md` may pin a list of allowed values — respect it if present.
+Invalid here (these are domains, not projects — they belong in positions 1–3):
+- ❌ `theology`, `teologia`, `python`, `markdown`, `claude-code`
+
+Should be kebab-case. The user's `_local/taxonomy.overrides.md` may pin a list of allowed values — respect it if present. If you cannot identify a real project context, use `config.default_project_tag`; do not echo a domain tag here.
 
 ## When the AI is unsure
 

@@ -91,8 +91,11 @@ These are non-negotiable. They protect the user's data and privacy.
 6. **Never reveal personal paths or names in the skill code itself.** All personal data flows through `_local/config.json`, never hardcoded.
 7. **Never run destructive shell commands** (`rm -rf`, `git reset --hard`, etc.) against the vault.
 8. **Never move user-created files.** If the user placed a file at the root or in a subdir of their own making, leave it alone on subsequent runs.
-9. **Never create speculative subdirectories.** Only the 3 standard ones (`chats/`, `logs/`, `archives/`), and only when actually writing into them. Additional buckets are created **autonomously** but only when the YAGNI threshold (≥ 20 files of a distinct prefix at the root) is crossed — see `references/vault-structure.md`. New buckets must always be reported in `logs/log_YYYYMMDD.md`.
-10. **If anything is ambiguous or risky, stop and report**, do not guess.
+9. **Never create speculative subdirectories.** Only the standard ones (`nodes/`, `entities/`, `chats/`, `logs/`, `archives/`), and only when actually writing into them. Additional buckets are created **autonomously** but only when the YAGNI threshold (≥ 20 files of a distinct prefix at the root) is crossed — see `references/vault-structure.md`. New buckets must always be reported in `logs/log_YYYYMMDD.md`.
+10. **Never emit raw Markdown-breaking characters in generated content.** Any literal `<` / `>` (paths, placeholders, generics like `<proj>`, env vars, shell snippets) MUST be wrapped in backticks (`` `~/.claude/projects/<proj>/` ``) or escaped (`&lt;` / `&gt;`). Obsidian and most renderers parse a bare `<word>` as an unclosed HTML tag and silently destroy everything after it — including subsequent headings and list items. This applies to `_INDEX.md`, `_RECENT.md`, node/entity bodies, log reports — *every* generated file. See `references/frontmatter-spec.md` → "Markdown-safe output".
+11. **Never create `status: draft` stub files for one-off dangling wikilinks.** Leave them unresolved (Obsidian "create new" anchors). Only materialize a draft stub when a dangling target is referenced by ≥ 3 distinct files. See `references/vault-structure.md`.
+12. **The linker must produce node↔node links, not just chat↔node.** An isolated `node_*` (`linked_nodes: []`) after a run is a linker failure. See `references/multi-agent-orchestration.md` → linker phase 2.
+13. **If anything is ambiguous or risky, stop and report**, do not guess.
 
 ## When you should NOT trigger this skill
 

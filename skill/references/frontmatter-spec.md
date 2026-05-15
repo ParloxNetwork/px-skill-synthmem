@@ -67,7 +67,9 @@ If the file is `node_soteriology.md`, the slug is `soteriology`.
 
 ### `tags` (required — exactly 5)
 
-The taxonomy is strict. See `tag-taxonomy.md`. Positions 1-3 are domain, position 4 is content-type, position 5 is project. The indexer relies on this ordering.
+The taxonomy is strict. See `tag-taxonomy.md`. Positions 1-3 are domain, position 4 is content-type, position 5 is project.
+
+**Resolve in the order 5 → 4 → 3** (project first, content-type second, domain last) and enforce the **distinctness invariant**: all 5 tags must be unique — no value may repeat across positions. Position 5 is a project/life *context* (`sermon-prep`, `synthmem-dev`, `infra`), never a topic word. The indexer relies on this ordering and on tags being distinct.
 
 If a file genuinely doesn't have a domain (rare — usually meta files), use the placeholder `meta`.
 
@@ -137,3 +139,21 @@ created: 2026-05-14T22:30:11-05:00
 last_updated: 2026-05-14T22:30:11-05:00
 ---
 ```
+
+## Markdown-safe output (applies to ALL generated files)
+
+The vault is read in Obsidian, VS Code, GitHub, plain `cat` — the content must not break any Markdown renderer. The most common breakage (found in v0.6.1 testing) is a bare angle-bracket placeholder like `<proj>` in a path: renderers treat it as an unclosed HTML tag and **silently swallow everything after it**, including later headings and list items. One bad `_INDEX.md` line destroyed the whole rest of the file's rendering.
+
+Rules for every generated file (`_INDEX.md`, `_RECENT.md`, `node_*`, `entity_*`, `log_*`, `chat_*`, `_archive_*`):
+
+1. **Backtick anything code-ish.** Paths, placeholders, env vars, shell commands, generics:
+   - ✅ `` `~/.claude/projects/<proj>/` ``
+   - ✅ `` `<session-id>` ``
+   - ❌ `~/.claude/projects/<proj>/` (bare — breaks the renderer)
+2. **If it's prose, escape.** When backticks would be semantically wrong, use `&lt;` / `&gt;`.
+3. **One-line descriptions in `_INDEX.md` / `_RECENT.md`** must be backtick-safe: scan the description for `<`, `>`, unescaped `|`, and leading `#`; wrap or escape before writing the line.
+4. **Pipes in tables.** A literal `|` inside a table cell must be `\|` or backticked.
+5. **Leading `#` that is not a heading** (e.g. a comment, a CSS id) must be backticked or indented, or the renderer turns it into an `<h1>`.
+6. **Wikilinks are exempt** — `[[...]]` is not affected by this; never backtick a wikilink (that would disable it).
+
+The indexer and every writing sub-agent must apply this as a final pass before writing a file. Treat it as part of "the file is valid", same level as "the frontmatter parses".
