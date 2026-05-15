@@ -18,9 +18,23 @@ When invoked you:
 5. **Link** new and existing files bidirectionally with `[[wikilinks]]` (use basenames, never include the subdirectory prefix).
 6. **Index** the vault: update `_INDEX.md` and `_RECENT.md` (both at the root).
 7. **Compact** old daily logs and chats into `archives/_archive_*.md` — **without deleting** original content. See `references/compaction-policy.md`.
-8. **Validate (scope-aware gate)**: run `scripts/validate_vault.py --vault ${VAULT_PATH} --changed <comma-separated list of files this run wrote/touched>` (if Python available; otherwise inline equivalent). Passing `--changed` is important: ERRORs in files **this run touched** block finalization; ERRORs in **untouched legacy files** are demoted to warnings tagged "pre-existing (run /synthmem repair)" so a clean run is not blocked forever by old issues. Fold the `summary` + errors/warnings into the daily log report. **Finalize `_state.json` only if zero in-scope ERRORs**; otherwise leave `last_run_status: "partial"`. If the only problems are pre-existing/out-of-scope, finalize normally **and** tell the user to run `/synthmem repair`.
-9. **Write** an end-of-run summary to today's `logs/log_YYYYMMDD.md`.
-10. After updating `_state.json` (per-day, see catch-up-logic), tell the user briefly what was done — include the validation verdict (PASS / REVIEW / FAIL).
+8. **Validate (scope-aware)**: run `scripts/validate_vault.py --vault ${VAULT_PATH} --changed <files this run wrote/touched>`. Fold the `summary` into the daily log.
+9. **Auto-heal (automatic — the user never types `/synthmem repair` for routine drift)**: if validation reported **any deterministically-fixable issue** (tag distinctness, slug≠filename-tail, asymmetric wikilinks, archive content-type, markdown `<…>` hazards) — whether legacy or introduced by this run — automatically run `scripts/repair_vault.py --vault ${VAULT_PATH} --project ${PROJECT_TAG}`, then **re-run the validator**. In the log, record what repair fixed, split into:
+   - **legacy** (files this run didn't touch) — expected, just note the count.
+   - **in-scope** (files this run wrote) — this means the distiller/linker produced fixable output; flag it in the log as `⚠ distiller-smell: investigate` so we keep the observability signal even though the vault self-healed.
+   Auto-heal is skipped entirely when validation is already clean (zero cost on healthy vaults).
+10. **Finalize**: after the re-validation, finalize `_state.json` (`finalize-run`) **unless** there are still genuine in-scope ERRORs that repair could not fix (then `last_run_status: "partial"`). Non-auto-fixable **flagged** items (e.g. duplicate-domain-tags needing a semantic re-tag) **never block** — blocking would create a stuck overnight state, the opposite of autonomous.
+11. **Write** the end-of-run report to `logs/log_YYYYMMDD.md`, including a `## Para revisar (opcional)` section listing any flagged items with a concrete suggested action.
+12. **Tell the user** briefly what was done (verdict + counts). If flagged items exist, add **one concrete line**: e.g. *"Si tienes chance: revisa `node_x` (2 tags de dominio duplicados, decide cuál va). Si no, queda anotado en `logs/log_YYYYMMDD.md` → 'Para revisar', lo retomas cuando quieras — sin problema."* If nothing needs review, say so plainly.
+
+### Autonomy contract (non-negotiable)
+
+The user's expectation: type `/synthmem` at end of day, leave the machine on, come back to a **finished** state. Therefore:
+
+- The run **always reaches a terminal state** — finalized, or `partial` with a clear logged reason. It never hangs waiting for input (the only documented prompt is first-run, and `first_run_default` removes even that).
+- Vault hygiene (legacy + drift) is **self-healed automatically** via step 9. The standalone `/synthmem repair` remains for manual/debug use but is **not required** for routine operation.
+- Sub-agent failures don't abort the run: mark the session pending, continue, retry next run (see `catch-up-logic.md`). A run with partial failures still finalizes the parts that succeeded and reports what's pending.
+- Anything that genuinely needs human judgment is **surfaced, not blocking**: one line in the final summary + a `## Para revisar (opcional)` section in the day's log. The user reviews on their own schedule or never; the vault stays consistent either way.
 
 ### `/synthmem validate` — read-only audit mode
 

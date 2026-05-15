@@ -5,6 +5,23 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.6] — auto-heal (autonomy-first)
+
+User-driven: the core principle is "type `/synthmem` at end of day, leave the machine on, come back to a finished vault — no subcommands." v0.6.5 made the vault *fixable* but still required the user to type `/synthmem repair`. v0.6.6 makes it automatic. Roadmap reordered: auto-heal promoted ahead of `status`.
+
+### Added
+- **Validator-triggered auto-repair** inside every `/synthmem` run. If the scope-aware validator finds any deterministically-fixable drift (tag distinctness, slug≠filename-tail, asymmetric wikilinks, archive content-type, markdown `<…>`) — legacy *or* introduced this run — `repair_vault.py` runs automatically, then the validator re-runs. Skipped entirely when the vault is already clean (zero cost on healthy runs).
+- **Observability split**: repair's fixes are logged as **legacy** (expected, count only) vs **in-scope** (`⚠ distiller-smell: investigate`) so silent self-healing never masks a distiller/linker bug.
+- **Autonomy contract** (SKILL.md): the run always reaches a terminal state (finalized, or `partial` with a logged reason); it never hangs for input; sub-agent failures mark-pending-and-continue; anything needing human judgment is surfaced (one line in the final summary + `## Para revisar (opcional)` in the day's log), never blocking.
+
+### Changed
+- Pipeline steps 8–12 restructured: validate → auto-heal loop → finalize → report. Non-auto-fixable `flagged` items finalize anyway (blocking would create a stuck overnight state — anti-autonomy).
+- `/synthmem repair` remains as a manual/debug standalone but is **no longer required** for routine operation.
+- ROADMAP reordered: v0.6.7 `status`, v0.6.8 `--retry`, v0.6.9 tag linter.
+
+### Notes
+This is the feature that fulfills the original promise: end your day, run `/synthmem`, sleep, return to consolidated + reconciled + validated — hands-off. No new script (auto-heal orchestrates the existing v0.6.3 validator + v0.6.5 repair). v0.6.7 next: `/synthmem status`.
+
 ## [0.6.5] — repair pass + scope-aware validation gate
 
 The v0.6.4 dry-run surfaced an architectural gap: template/spec fixes only apply to newly-generated files, so a vault made by an older skill version stays broken forever, and the v0.6.3 gate would keep `_state.json` at "partial" indefinitely on legacy errors. v0.6.5 closes that gap. Roadmap reordered: `repair` promoted ahead of `status`.

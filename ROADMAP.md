@@ -61,10 +61,16 @@ Each item lands as its own patch release (v0.6.x).
 - [x] Scope-aware gate: `validate_vault.py --changed <files>` demotes out-of-scope (legacy) errors to warnings tagged "pre-existing (run /synthmem repair)" so a clean run is never blocked forever by old issues. Resolves the v0.6.4 dry-run finding.
 - [x] Resolves the asymmetric-wikilinks watch-item: `repair` adds the missing reverse links (the ~79 case → 2 residual archive↔chat edges).
 
-### Coming in v0.6.6+ (reordered after the v0.6.4 dry-run finding)
-- [ ] **v0.6.6** `/synthmem status`: report vault size, last-run, pending sessions, errors.
-- [ ] **v0.6.7** `/synthmem --retry`: reprocess failed sessions explicitly.
-- [ ] **v0.6.8** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
+### v0.6.6 — auto-heal (autonomy-first)
+- [x] Validator-triggered auto-repair inside every `/synthmem` run: if validation finds deterministically-fixable drift (legacy or in-scope), `repair_vault.py` runs automatically, then re-validates. Zero cost when the vault is already clean. The user never needs to type `/synthmem repair` for routine operation (it stays as a manual/debug subcommand).
+- [x] Observability split preserved: in-scope fixes logged as `⚠ distiller-smell: investigate` so silent self-healing doesn't mask distiller bugs.
+- [x] Non-auto-fixable `flagged` items never block: surfaced in the day's log `## Para revisar (opcional)` + one concrete line in the final user summary. The run always reaches a terminal state.
+- [x] Autonomy contract documented in SKILL.md: type `/synthmem`, leave overnight, return to a finished vault — no subcommands, no hangs, errors self-identified and the flow always completes.
+
+### Coming in v0.6.7+ (reordered: autonomy promoted ahead of status)
+- [ ] **v0.6.7** `/synthmem status`: report vault size, last-run, pending sessions, errors.
+- [ ] **v0.6.8** `/synthmem --retry`: reprocess failed sessions explicitly.
+- [ ] **v0.6.9** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
 
 ### Watch-items (open findings, not yet scheduled)
 - ⚠️ **Archive↔chat back-reference**: after `repair`, 2 residual asymmetric links remain where an `_archive_*` references a `chat_*` but the chat doesn't link back. Minor (non-blocking, REVIEW not FAIL). Repair's reverse-link pass reads `linked_nodes` only; archive→chat refs may live in the archive body. Refine `repair_vault.py` reverse-link scan to also honor compaction-style body refs (candidate v0.6.5.1 or fold into v0.6.8).

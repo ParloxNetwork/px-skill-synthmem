@@ -183,12 +183,23 @@ python3 ${SKILL_DIR}/scripts/validate_vault.py \
 
 (If Python is unavailable, perform the equivalent checks inline — see `validate_vault.py`'s docstring.)
 
-- Parse the JSON `summary`. Append it + errors/warnings to today's `logs/log_YYYYMMDD.md`.
-- **In-scope errors > 0** (errors in files this run touched): do **not** finalize. Leave `last_run_status: "partial"`, list them prominently, tell the user.
-- **Only pre-existing/out-of-scope errors** (legacy files this run didn't touch — demoted to warnings tagged "pre-existing (run /synthmem repair)"): **finalize normally**, but tell the user clearly: "Vault has N legacy issues from older runs — run `/synthmem repair` to reconcile them." Do not block on these forever; that was the v0.6.5 fix.
-- **Only warnings/info**: finalize normally.
+- Parse the JSON `summary`. Append it to today's `logs/log_YYYYMMDD.md`.
 
-Why scope matters: template/spec fixes only apply to new files. Without `--changed`, any vault with legacy errors would stay `partial` on every future run even when new output is perfect — making the gate counterproductive. The repair pass (`/synthmem repair`, `scripts/repair_vault.py`) is what actually clears legacy issues; the gate just points at it.
+**Auto-heal loop (v0.6.6 — the gate now self-heals, it doesn't just accuse):**
+
+1. If validation is clean (PASS, no fixable issues) → skip straight to finalize. Zero extra cost on healthy vaults.
+2. If validation reports **any deterministically-fixable issue** (tag distinctness, slug≠filename-tail, asymmetric wikilinks, archive content-type, markdown `<…>`), legacy *or* in-scope:
+   - Run `python3 ${SKILL_DIR}/scripts/repair_vault.py --vault ${VAULT_PATH} --project ${PROJECT_TAG}`.
+   - **Re-run** the validator (same `--changed` scope).
+   - Log what repair fixed, split: **legacy** (note count, expected) vs **in-scope** (the distiller/linker produced fixable output → log `⚠ distiller-smell: investigate`; keeps the dev-observability signal even though the user's vault silently healed).
+3. After re-validation:
+   - **Zero errors** → finalize normally.
+   - **Residual in-scope errors repair could not fix** → `last_run_status: "partial"`, list them, surface to user.
+   - **Only non-auto-fixable `flagged` items** (e.g. genuine duplicate-domain-tags needing a semantic re-tag) → **finalize anyway**. These never block (blocking = stuck overnight state = anti-autonomy). They go to the log's `## Para revisar (opcional)` section and one concrete line in the final user summary.
+
+`/synthmem repair` standalone still exists for manual/debug use, but the autonomous pipeline no longer requires the user to invoke it.
+
+Why scope still matters: in-scope vs legacy is now used for the **observability split** (is the distiller producing fixable junk?), not for blocking. Repair handles both; the gate's job shrinks to "finalize, or surface the genuinely-human-only items."
 
 This replaces ad-hoc LLM "sanity checking" with a deterministic, reproducible gate — the same reason the other scripts exist (v0.6.0 principle: mechanical work is scripted, not eyeballed).
 
