@@ -1,0 +1,26 @@
+{
+  "vault_path": "/absolute/path/to/your/vault",
+  "vault_name": "my-synth-vault",
+  "claude_sessions_dir": "~/.claude/projects",
+  "default_project_tag": "personal",
+  "owner_handle": "your-handle-or-name",
+  "timezone": "Etc/UTC",
+  "compaction": {
+    "weekly_snapshot_after_days": 7,
+    "monthly_archive_after_days": 30,
+    "preserve_originals": true
+  },
+  "agents": {
+    "harvester": true,
+    "distiller": true,
+    "linker": true,
+    "indexer": true,
+    "reviewer": false
+  },
+  "tagging": {
+    "domain_tags_count": 3,
+    "content_type_tags_count": 1,
+    "project_tags_count": 1,
+    "prefer_specific_over_generic": true
+  }
+}

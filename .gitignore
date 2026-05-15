@@ -1,0 +1,22 @@
+# Local-only configuration and overrides — never commit
+# Anything under _local/ is private (vault path, owner handle, personal notes).
+# The public template for the config lives at the repo root: config.example.json
+_local/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs from manual runs
+*.log
+
+# Python (only if user runs helper scripts)
+__pycache__/
+*.pyc
+.venv/
+
+# Node (only if user adds tooling later)
+node_modules/
