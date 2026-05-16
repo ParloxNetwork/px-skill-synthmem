@@ -37,6 +37,16 @@ CONTENT_TYPES = {
     "concept", "pattern", "decision", "recipe",
     "reference", "entity", "summary", "meta",
 }
+# Umbrella / placeholder tags that should not appear in a DOMAIN slot
+# (positions 1-3). Single source of truth — keep in sync with
+# tag-taxonomy.md "Genericity lint". `unfiled` is exempt on status:draft
+# files (it is the intentional, temporary stub placeholder).
+GENERIC_DOMAIN_TAGS = {
+    "general", "misc", "miscellaneous", "other", "stuff", "unknown",
+    "notes", "tech", "technology", "theology", "programming", "coding",
+    "ai", "writing", "tools", "tooling", "software", "development",
+    "vault-meta", "unfiled",
+}
 STATUSES = {"active", "draft", "deprecated", "superseded"}
 TYPES = {"node", "entity", "log", "chat", "archive", "meta"}
 TYPE_DIR = {
@@ -93,7 +103,8 @@ def iter_md(vault):
         yield p
 
 
-def check_file(p, vault, errors, warnings, info, link_index, slugs, titles):
+def check_file(p, vault, errors, warnings, info, link_index, slugs, titles,
+                tag_data):
     rel = str(p.relative_to(vault))
     try:
         text = p.read_text(encoding="utf-8", errors="replace")
@@ -168,6 +179,12 @@ def check_file(p, vault, errors, warnings, info, link_index, slugs, titles):
             warnings.append({"file": rel, "check": "tags",
                              "msg": f"position-4 (content-type) {tags[3]!r} "
                                     f"not in fixed vocabulary"})
+        if len(tags) == 5:
+            tag_data["per_file"].append(
+                {"rel": rel, "domain": tags[:3],
+                 "status": fm.get("status", "active"), "ftype": ftype})
+            for t in tags:
+                tag_data["all_tags"].add(t)
 
     if fm.get("status") not in STATUSES:
         errors.append({"file": rel, "check": "frontmatter",
@@ -274,6 +291,37 @@ def dup_checks(slugs, titles, warnings, info):
                                     f"{f1} ~ {f2}"})
 
 
+def tag_genericity_checks(tag_data, warnings, info):
+    """Advisory only (warnings, never errors — genericity is a semantic
+    judgement, not a mechanical defect; not auto-fixed by repair).
+
+    ONE precise signal: an umbrella/placeholder term from the curated
+    denylist (kept in sync with tag-taxonomy.md 'Genericity lint') used
+    in a DOMAIN slot (positions 1-3). `unfiled` is exempt on
+    status:draft files (intentional temporary stub placeholder).
+
+    A vocabulary-drift heuristic ("tag is a token-prefix of >=3 other
+    tags") was prototyped and dropped in v0.6.10: it false-positived on
+    legitimate hierarchical tags (`claude-code` flagged because
+    `claude-code-skills` exists). Without semantic understanding a
+    stdlib script can't tell a parent tag from a too-generic one, and a
+    noisy advisory that cries wolf is worse than a tight one. The
+    denylist is precise and matches the taxonomy doc's explicit list.
+    """
+    for rec in tag_data["per_file"]:
+        rel = rec["rel"]
+        is_draft = rec["status"] == "draft"
+        for pos, tag in enumerate(rec["domain"], start=1):
+            if tag in GENERIC_DOMAIN_TAGS:
+                if tag == "unfiled" and is_draft:
+                    continue  # intentional temporary stub placeholder
+                warnings.append({
+                    "file": rel, "check": "tag-genericity",
+                    "msg": f"domain tag #{pos} {tag!r} is too generic — "
+                           f"prefer a specific tag (see tag-taxonomy.md "
+                           f"'Genericity lint'). Advisory; not auto-fixed."})
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("--vault", required=True, help="vault root path")
@@ -295,6 +343,7 @@ def main():
     link_index = {"edges": [], "refs": {}, "all_names": set(),
                   "isolated_nodes": []}
     slugs, titles = {}, []
+    tag_data = {"per_file": [], "all_tags": set()}
 
     # binary / structure sweep
     for p in sorted(vault.rglob("*")):
@@ -308,12 +357,13 @@ def main():
     try:
         for p in iter_md(vault):
             check_file(p, vault, errors, warnings, info,
-                       link_index, slugs, titles)
+                       link_index, slugs, titles, tag_data)
     except OSError as e:
         print(f"I/O error: {e}", file=sys.stderr)
         sys.exit(2)
 
     graph_checks(link_index, errors, warnings, info)
+    tag_genericity_checks(tag_data, warnings, info)
     dup_checks(slugs, titles, warnings, info)
 
     # Scope-aware gate: demote ERRORs in files this run did NOT touch to

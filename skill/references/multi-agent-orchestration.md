@@ -209,7 +209,9 @@ python3 ${SKILL_DIR}/scripts/validate_vault.py \
 3. After re-validation:
    - **Zero errors** → finalize normally.
    - **Residual in-scope errors repair could not fix** → `last_run_status: "partial"`, list them, surface to user.
-   - **Only non-auto-fixable `flagged` items** (e.g. genuine duplicate-domain-tags needing a semantic re-tag) → **finalize anyway**. These never block (blocking = stuck overnight state = anti-autonomy). They go to the log's `## Para revisar (opcional)` section and one concrete line in the final user summary.
+   - **Only non-auto-fixable `flagged` items** (e.g. genuine duplicate-domain-tags needing a semantic re-tag; `tag-genericity` advisories — an umbrella term in a domain slot) → **finalize anyway**. These never block (blocking = stuck overnight state = anti-autonomy) and are **never auto-repaired** (fixing a tag's meaning needs semantic judgement, not a mechanical rewrite). They go to the log's `## Para revisar (opcional)` section and one concrete line in the final user summary.
+
+`tag-genericity` warnings specifically: advisory only. The auto-heal loop (step 2) ignores them — `repair_vault.py` does not touch tag *meaning*. They exist purely to nudge the user/distiller toward a more specific tag on their own schedule.
 
 `/synthmem repair` standalone still exists for manual/debug use, but the autonomous pipeline no longer requires the user to invoke it.
 

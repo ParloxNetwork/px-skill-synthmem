@@ -24,7 +24,7 @@ When invoked you:
    - **in-scope** (files this run wrote) — this means the distiller/linker produced fixable output; flag it in the log as `⚠ distiller-smell: investigate` so we keep the observability signal even though the vault self-healed.
    Auto-heal is skipped entirely when validation is already clean (zero cost on healthy vaults).
 10. **Finalize**: after the re-validation, finalize `_state.json` (`finalize-run`) **unless** there are still genuine in-scope ERRORs that repair could not fix (then `last_run_status: "partial"`). Non-auto-fixable **flagged** items (e.g. duplicate-domain-tags needing a semantic re-tag) **never block** — blocking would create a stuck overnight state, the opposite of autonomous.
-11. **Write** the end-of-run report to `logs/log_YYYYMMDD.md`, including a `## Para revisar (opcional)` section listing any flagged items with a concrete suggested action.
+11. **Write** the end-of-run report to `logs/log_YYYYMMDD.md`, including a `## Para revisar (opcional)` section listing any flagged items with a concrete suggested action. This section also collects `tag-genericity` advisories (umbrella term in a domain slot — see `references/tag-taxonomy.md` "Genericity lint"): advisory only, never blocking, never auto-repaired (a tag's meaning needs human/distiller judgement).
 12. **Tell the user** briefly what was done (verdict + counts). If flagged items exist, add **one concrete line**: e.g. *"Si tienes chance: revisa `node_x` (2 tags de dominio duplicados, decide cuál va). Si no, queda anotado en `logs/log_YYYYMMDD.md` → 'Para revisar', lo retomas cuando quieras — sin problema."* If nothing needs review, say so plainly.
 
 ### Autonomy contract (non-negotiable)

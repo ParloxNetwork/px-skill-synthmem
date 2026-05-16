@@ -99,6 +99,23 @@ Should be kebab-case. The user's `_local/taxonomy.overrides.md` may pin a list o
 3. If still unsure, lean specific. The indexer can roll up; it can't drill down.
 4. Never invent a tag like `general`, `misc`, `other`, `stuff`, `unknown`. If you need that, you haven't understood the content yet — re-read.
 
+## Genericity lint (v0.6.10)
+
+`validate_vault.py` runs a deterministic advisory check: an umbrella / placeholder term used in a **domain slot** (positions 1–3) is flagged. It is a **warning, never an error** — genericity is a semantic judgement, so it never blocks the gate, never triggers auto-repair, and is surfaced in the day's log `## Para revisar (opcional)`. Fixing it requires a human/distiller semantic re-tag.
+
+**Canonical denylist** (single source of truth — `validate_vault.py` `GENERIC_DOMAIN_TAGS` is kept in sync with this list):
+
+```
+general, misc, miscellaneous, other, stuff, unknown, notes,
+tech, technology, theology, programming, coding, ai, writing,
+tools, tooling, software, development, vault-meta, unfiled
+```
+
+- `unfiled` is **exempt on `status: draft` files** — it is the intentional, temporary placeholder a ≥3-ref stub carries until the distiller fleshes it out.
+- Specific replacements: `theology` → `soteriology`/`christology`/…; `programming` → `python`/`bash`/…; `ai` → `claude-code`/`mcp`/…; `tools` → `obsidian`/`git`/… (see "Specificity rule" above).
+
+**Not done — and why**: a "vocabulary drift" heuristic (flag a tag that is the token-prefix of ≥3 other vault tags) was prototyped and dropped. It false-positived on legitimate hierarchical tags — `claude-code` is a *good* specific tag yet looks like an "umbrella" of `claude-code-skills`, `claude-code-memory`, … A stdlib script can't tell a parent tag from a too-generic one without semantic understanding, and a noisy advisory that cries wolf is worse than a precise one. The denylist stays the only signal.
+
 ## Examples
 
 A sermon outline on the doctrine of justification:

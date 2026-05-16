@@ -5,6 +5,18 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.10] — tag-taxonomy linter (closes v0.6 Hardening)
+
+### Added
+- **`validate_vault.py` `tag-genericity` check**: flags an umbrella/placeholder term (curated denylist, kept in sync with `tag-taxonomy.md` "Genericity lint") used in a domain slot (positions 1–3). **Advisory only** — a warning, never an error; never blocks the gate; never auto-repaired (a tag's meaning needs semantic judgement, not a mechanical rewrite). Surfaced in the day-log `## Para revisar (opcional)`. `unfiled` exempt on `status: draft` files (intentional stub placeholder). 0 false positives on the real vault (the distiller's tag discipline is solid).
+
+### Tried and reverted (honest engineering)
+- **Vocabulary-drift heuristic** (flag a tag that is the token-prefix of ≥3 other tags): prototyped, dropped. False-positived on legitimate hierarchical tags — `claude-code` is a *good* specific tag but looks like an umbrella of `claude-code-skills`/`claude-code-memory`. A stdlib script can't tell a parent from a too-generic tag without semantics; a noisy advisory is worse than a precise one. Denylist is the only signal.
+- **Archive↔chat watch-item fix**: honoring `_archive_*` body wikilinks in the symmetrizer regressed asymmetric-link count **0 → 88** (an archive body is a consolidation dump referencing dozens of files; forcing bidirectionality bloats `linked_nodes`). Reverted. The ~2 residual archive↔chat warnings are cosmetic and non-blocking; shipping a regression to close them is worse. Documented as a known minor limitation in ROADMAP.
+
+### Milestone
+**v0.6 (Hardening) is COMPLETE** — v0.6.0 → v0.6.10. The skill is autonomous end-to-end (process → validate → auto-heal → finalize) with status/retry/dry-run/repair tooling and an advisory tag linter. Next: v0.7 (multi-IA) or public promotion from v0.6.x.
+
 ## [0.6.9] — `/synthmem --retry`
 
 ### Added

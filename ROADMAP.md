@@ -77,11 +77,15 @@ Each item lands as its own patch release (v0.6.x).
 ### v0.6.9 — `/synthmem --retry`
 - [x] `/synthmem --retry` reprocesses only `pending_sessions`. `update_state.py --action bump-retry` + `pending_attempts` + `MAX_RETRY_ATTEMPTS=3` → a broken session auto-drops into `dropped_sessions` (surfaced), never loops forever. Normal runs still auto-resume; `--retry` is the explicit scoped form.
 
-### Coming in v0.6.10+
-- [ ] **v0.6.10** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
+### v0.6.10 — tag-taxonomy linter (closes v0.6 Hardening) ✅
+- [x] `validate_vault.py` `tag-genericity` check: an umbrella/placeholder term (curated denylist, synced with `tag-taxonomy.md`) used in a domain slot is flagged. **Advisory only** — warning, never error; never blocks the gate; never auto-repaired (a tag's meaning needs semantic judgement). `unfiled` exempt on `status: draft`. 0 false positives on the real vault.
+- [x] Vocabulary-drift heuristic **prototyped and dropped**: it false-positived on legitimate hierarchical tags (`claude-code` flagged because `claude-code-skills` exists). A stdlib script can't distinguish a parent tag from a too-generic one; the precise denylist is the only signal.
+- [~] **Archive↔chat watch-item: attempted, reverted.** Honoring `_archive_*` body wikilinks in the symmetrizer regressed asymmetric-link count 0 → 88 (an archive body is a consolidation dump referencing dozens of files; forcing bidirectionality on all bloats `linked_nodes`). The ~2 residual archive↔chat warnings are cosmetic and non-blocking; shipping that regression to close them is worse. **Left as a documented known minor limitation** (below).
 
-### Watch-items (open findings, not yet scheduled)
-- ⚠️ **Archive↔chat back-reference**: ~2 residual asymmetric links where an `_archive_*` references a `chat_*` in its **body** (not `linked_nodes`) so the symmetrizer doesn't see it. Minor, non-blocking. Refine the phase-3 reverse-link scan to also honor compaction-style body refs (fold into v0.6.10).
+**v0.6 (Hardening) is COMPLETE.** v0.6.0 → v0.6.10 done. The skill is autonomous end-to-end: process → validate → auto-heal → finalize, with status/retry/dry-run/repair tooling and an advisory tag linter.
+
+### Known minor limitations (accepted, not blocking)
+- **Archive↔chat back-reference**: ~2 residual asymmetric links where an `_archive_*` references a `chat_*` in its body. Cosmetic, non-blocking (REVIEW not FAIL). A clean fix needs a model that distinguishes "consolidation dump body ref" from "semantic link" — deferred indefinitely; not worth a regression.
 
 ## v0.7 — Multi-IA support
 

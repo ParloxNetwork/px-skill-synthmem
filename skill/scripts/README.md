@@ -52,7 +52,7 @@ python3 validate_vault.py --vault /path/to/vault
 python3 validate_vault.py --vault /path/to/vault --format text
 ```
 
-Checks: frontmatter completeness, `type`↔subdir, slug==filename-tail, 5 distinct tags, content-type vocabulary, ISO dates, broken/asymmetric/isolated wikilinks, dangling targets that should be stubs (≥3 refs), near-duplicate slugs/titles, raw `<...>`/pipe/leading-`#` markdown hazards, binaries, root cleanliness.
+Checks: frontmatter completeness, `type`↔subdir, slug==filename-tail, 5 distinct tags, content-type vocabulary, ISO dates, broken/asymmetric/isolated wikilinks, dangling targets that should be stubs (≥3 refs), near-duplicate slugs/titles, raw `<...>`/pipe/leading-`#` markdown hazards, binaries, root cleanliness, **tag-genericity** (advisory warning: umbrella term from the curated denylist in a domain slot — never an error, never auto-fixed; v0.6.10).
 
 **Stdout**: JSON `{summary:{errors,warnings,info,verdict}, errors[], warnings[], info[]}`. **Exit 5** if any ERROR-level issue (so a CI step or the skill can gate on it); exit 0 if only warnings/info.
 

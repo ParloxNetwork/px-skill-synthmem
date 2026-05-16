@@ -249,6 +249,14 @@ def repair_links(vault, all_names, fixed):
         for raw in ln:
             for t in WIKILINK_RE.findall(str(raw)):
                 targets.append(t.strip())
+        # NOTE (v0.6.10): a tried-and-reverted fix added _archive_* BODY
+        # wikilinks here so the symmetrizer would reciprocate them. It
+        # regressed asymmetric-link count 0 -> 88 (an archive body is a
+        # consolidation dump referencing dozens of chats/logs/nodes;
+        # forcing bidirectionality on all of them bloats linked_nodes).
+        # The ~2 residual archive<->chat warnings are cosmetic and
+        # non-blocking; shipping that regression to close them is worse.
+        # Left as a known minor limitation — see ROADMAP watch-items.
         files[p] = {"name": p.stem, "fm": fm, "body": body,
                     "targets": targets}
 
