@@ -67,13 +67,17 @@ Each item lands as its own patch release (v0.6.x).
 - [x] Non-auto-fixable `flagged` items never block: surfaced in the day's log `## Para revisar (opcional)` + one concrete line in the final user summary. The run always reaches a terminal state.
 - [x] Autonomy contract documented in SKILL.md: type `/synthmem`, leave overnight, return to a finished vault — no subcommands, no hangs, errors self-identified and the flow always completes.
 
-### Coming in v0.6.7+ (reordered: autonomy promoted ahead of status)
-- [ ] **v0.6.7** `/synthmem status`: report vault size, last-run, pending sessions, errors.
-- [ ] **v0.6.8** `/synthmem --retry`: reprocess failed sessions explicitly.
-- [ ] **v0.6.9** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
+### v0.6.7 — linker root-cause fix (caught by v0.6.6 observability)
+- [x] **Fix A — deterministic link symmetry**: `repair_vault.py --links-only` (linker phase 3). The LLM linker does semantic forward-linking; a mandatory deterministic final step symmetrizes every `A→B` into `B→A`. v0.6.6's `⚠ distiller-smell` exposed ~176 asymmetric links/run that auto-heal was cleaning across 73 files *every run*. Now the gate sees zero — no per-run churn. Bidirectionality is bookkeeping → script, not LLM (v0.6.0 principle).
+- [x] **Fix B — ≥3-ref node stubs**: the ≥3-referrer stub rule now materializes `node_` stubs too, not only `entity_`. The 16 frequently-referenced concepts (3–6 refs each) that were dangling graph gaps now become `status: draft` stubs the distiller fleshes out later. Measured: post-v0.6.6 test vault REVIEW (16 warnings) → **PASS (0)**.
+
+### Coming in v0.6.8+
+- [ ] **v0.6.8** `/synthmem status`: report vault size, last-run, pending sessions, errors.
+- [ ] **v0.6.9** `/synthmem --retry`: reprocess failed sessions explicitly.
+- [ ] **v0.6.10** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
 
 ### Watch-items (open findings, not yet scheduled)
-- ⚠️ **Archive↔chat back-reference**: after `repair`, 2 residual asymmetric links remain where an `_archive_*` references a `chat_*` but the chat doesn't link back. Minor (non-blocking, REVIEW not FAIL). Repair's reverse-link pass reads `linked_nodes` only; archive→chat refs may live in the archive body. Refine `repair_vault.py` reverse-link scan to also honor compaction-style body refs (candidate v0.6.5.1 or fold into v0.6.8).
+- ⚠️ **Archive↔chat back-reference**: ~2 residual asymmetric links where an `_archive_*` references a `chat_*` in its **body** (not `linked_nodes`) so the symmetrizer doesn't see it. Minor, non-blocking. Refine the phase-3 reverse-link scan to also honor compaction-style body refs (fold into v0.6.10).
 
 ## v0.7 — Multi-IA support
 

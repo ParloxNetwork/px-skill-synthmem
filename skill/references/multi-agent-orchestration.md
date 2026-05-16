@@ -143,16 +143,30 @@ For every `node_*` / `entity_*` written or touched this run, establish links to 
 
 **Acceptance check before finishing:** if more than ~30% of nodes touched this run still have `linked_nodes: []`, the linker has under-performed — re-scan those isolated nodes for phase-2 candidates before handing off. An isolated node is a linker failure, not a normal outcome.
 
+#### Phase 3 — deterministic graph integrity (MANDATORY final step, v0.6.7)
+
+After the LLM does its semantic linking (phases 1–2), the linker MUST run the deterministic graph-integrity pass — **do not do this by hand**:
+
+```bash
+python3 ${SKILL_DIR}/scripts/repair_vault.py --vault ${VAULT_PATH} \
+  --project ${PROJECT_TAG} --links-only
+```
+
+This does two mechanical things the LLM is bad at and should never own:
+
+1. **Symmetrize**: for every `A → B` where B exists, ensure `B → A`. v0.6.6 observability proved the LLM linker emits ~176 asymmetric links per full run; auto-heal was silently cleaning 73 files *every run*. Making this a deterministic step at link-time means the validation gate sees zero asymmetric links — **no per-run repair churn**. Bidirectionality is bookkeeping, not judgment: it belongs in a script (v0.6.0 principle).
+2. **≥3-ref stub materialization**: any dangling target referenced by ≥ 3 distinct files gets a `status: draft` stub — **for `node_` AND `entity_`** (v0.6.6 only produced entity stubs; the 16 frequently-referenced `node_` concepts were left dangling — a real graph gap). The distiller fleshes these out the next time the concept appears in a session.
+
+The LLM linker's job is the *semantic* decision of which nodes relate (phases 1–2). The *mechanical* enforcement of a consistent graph (symmetry, ≥3-ref safety net) is `--links-only`. Keep the split.
+
 #### Broken / dangling wikilinks
 
-- A `[[target]]` with no matching file is **left as-is** (unresolved). It is a deliberate anchor: Obsidian shows it as "create new", and a future run that creates the target auto-resolves it (basenames match).
-- Do **not** create `status: draft` stub files for dangling links — that clutters the vault with empties.
-- **Exception**: if the same dangling target is referenced by **≥ 3 distinct files**, that is a strong signal the concept matters → create one real `status: draft` node with a `TODO: define` and link it. Report it.
-- Report the count of unresolved links in the handoff (informational, not an error).
+- A `[[target]]` referenced by **< 3 files** with no matching file is **left as-is** (unresolved) — a deliberate "create new" anchor; a future run that creates it auto-resolves it (basenames match). Do **not** stub these (clutter).
+- A `[[target]]` referenced by **≥ 3 files** → `repair_vault.py --links-only` materializes a `status: draft` stub (handled deterministically in phase 3, not by LLM judgment).
 
 **Outputs:**
-- Updated files (`linked_nodes` and `last_updated` only; never rewrites body content).
-- A handoff JSON: phase-1 backlinks added, phase-2 semantic links added, dangling-link count, any draft stubs created (with the ≥3 reason).
+- Updated files (`linked_nodes` / `last_updated` only; never rewrites body content).
+- A handoff JSON: phase-1 backlinks, phase-2 semantic links, phase-3 deterministic results (reverse links added, stubs created), dangling-link count.
 
 ### 4. `indexer`
 

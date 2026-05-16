@@ -5,6 +5,21 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.7] — linker root-cause fix (caught by v0.6.6 observability)
+
+v0.6.6's observability split did exactly its job on the first autonomous run: it flagged that the LLM linker emits ~176 asymmetric links **every run** (auto-heal was silently cleaning 73 files each time) and that 16 frequently-referenced `node_` concepts were dangling graph gaps. v0.6.7 fixes both at the root instead of patching symptoms each run.
+
+### Added / Changed
+- **`repair_vault.py --links-only`** + **linker phase 3** (mandatory deterministic final step): the LLM linker does the *semantic* forward-linking (phases 1–2); a script then does the *mechanical* graph integrity — symmetrize every `A→B` into `B→A`, and materialize `status: draft` stubs for any target referenced by ≥3 files. Bidirectionality and ≥3-ref safety nets are bookkeeping, not judgment → scripted (v0.6.0 principle). The validation gate now sees zero asymmetric links: **no per-run auto-heal churn**.
+- **Fix B**: ≥3-ref stub materialization now covers **`node_` as well as `entity_`** (v0.6.6 only stubbed entities, leaving 16 frequently-referenced node concepts dangling). The distiller fleshes these out the next time the concept appears in a session.
+- Guardrails #11/#12 and the Link workflow step rewritten to point at the deterministic phase 3.
+
+### Measured
+On the post-v0.6.6 real test vault: `repair_vault.py --links-only` took it from REVIEW (0 errors / 16 warnings — the 16 dangling ≥3-ref nodes) to **PASS (0 errors / 0 warnings)**, creating the exact 16 node-stubs the validator had flagged (`brand-axis-positioning` 6 refs, `wordpress-to-hugo-migration` 5, …) and symmetrizing the rest.
+
+### Notes
+This is the pattern again: autonomous run → observability signal → root-cause fix. The signal we built into v0.6.6 paid for itself immediately. v0.6.8 next: `/synthmem status`.
+
 ## [0.6.6] — auto-heal (autonomy-first)
 
 User-driven: the core principle is "type `/synthmem` at end of day, leave the machine on, come back to a finished vault — no subcommands." v0.6.5 made the vault *fixable* but still required the user to type `/synthmem repair`. v0.6.6 makes it automatic. Roadmap reordered: auto-heal promoted ahead of `status`.

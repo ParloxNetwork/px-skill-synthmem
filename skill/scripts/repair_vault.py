@@ -280,11 +280,96 @@ def repair_links(vault, all_names, fixed):
                       "changes": ["added reverse wikilink(s)"]})
 
 
+def materialize_stubs(vault, project, fixed):
+    """Create status:draft stubs for dangling targets referenced by >=3
+    distinct files. Covers BOTH node_ and entity_ targets (v0.6.7: the
+    >=3-ref guardrail previously only produced entity stubs). The distiller
+    fleshes these out the next time the concept appears in a session."""
+    from datetime import datetime, timezone
+    import random
+
+    names = set()
+    refs = {}   # target basename -> set(referring rel-paths)
+    for p in sorted(vault.rglob("*.md")):
+        if any(x.startswith(".") for x in p.relative_to(vault).parts):
+            continue
+        names.add(p.stem)
+        txt = p.read_text(encoding="utf-8", errors="replace")
+        fm, body = split_fm(txt)
+        scan = txt if fm is None else body
+        rel = str(p.relative_to(vault))
+        for tgt in WIKILINK_RE.findall(scan):
+            base = tgt.strip().split("/")[-1]
+            refs.setdefault(base, set()).add(rel)
+        if fm is not None:
+            ln = fm_get(fm, "linked_nodes")
+            for raw in (ln if isinstance(ln, list) else []):
+                for t in WIKILINK_RE.findall(str(raw)):
+                    refs.setdefault(t.strip().split("/")[-1],
+                                    set()).add(rel)
+
+    now = datetime.now(timezone.utc).astimezone().isoformat(
+        timespec="seconds")
+    for base, referrers in sorted(refs.items()):
+        if base in names or len(referrers) < 3:
+            continue
+        if base.startswith("node_"):
+            sub, slug = "nodes", base[len("node_"):]
+        elif base.startswith("entity_"):
+            sub, slug = "entities", base[len("entity_"):]
+        else:
+            continue  # only node_/entity_ targets get stubs
+        if not slug:
+            continue
+        sid = "".join(random.choice("0123456789abcdefghijklmnopqrstuvwxyz")
+                      for _ in range(3))
+        ftype = "node" if sub == "nodes" else "entity"
+        ct = "concept" if ftype == "node" else "entity"
+        title = slug.replace("-", " ").replace("_", " ").strip().capitalize()
+        d = vault / sub
+        d.mkdir(parents=True, exist_ok=True)
+        fp = d / f"{base}.md"
+        if fp.exists():
+            continue
+        stub = (
+            "---\n"
+            f"id: {datetime.now().strftime('%Y%m%d-%H%M%S')}-{sid}\n"
+            f"type: {ftype}\n"
+            f'title: "{title}"\n'
+            f"slug: {slug}\n"
+            f"tags: [unfiled, knowledge-management, vault-ops, {ct}, "
+            f"{project}]\n"
+            "status: draft\n"
+            "linked_nodes: []\n"
+            "sources: []\n"
+            f"created: {now}\n"
+            f"last_updated: {now}\n"
+            "---\n\n"
+            f"# {title}\n\n"
+            f"> **status: draft** — auto-created because {len(referrers)} "
+            f"files reference `[[{base}]]` but no file existed. The "
+            f"distiller will flesh this out the next time the concept "
+            f"appears in a session. Safe to edit or delete.\n\n"
+            "TODO: define this concept.\n"
+        )
+        fp.write_text(stub, encoding="utf-8")
+        fixed.append({"file": str(fp.relative_to(vault)),
+                      "changes": [f"created status:draft stub "
+                                  f"(>=3-ref: {len(referrers)} referrers)"]})
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("--vault", required=True)
     ap.add_argument("--project", default="personal",
                     help="fallback project tag when one can't be derived")
+    ap.add_argument("--links-only", action="store_true",
+                    help="run ONLY the deterministic graph-integrity pass "
+                         "(reverse-link symmetrization + >=3-ref stub "
+                         "materialization). Skips tag/slug/markdown repairs. "
+                         "The linker sub-agent calls this as its final, "
+                         "mechanical step so the validation gate never sees "
+                         "asymmetric links — no per-run repair churn.")
     ap.add_argument("--format", choices=["json", "text"], default="json")
     args = ap.parse_args()
 
@@ -298,11 +383,20 @@ def main():
                             for x in p.relative_to(vault).parts)}
     fixed, flagged = [], []
     try:
-        for p in sorted(vault.rglob("*.md")):
-            if any(x.startswith(".")
-                   for x in p.relative_to(vault).parts):
-                continue
-            repair_file(p, vault, all_names, fixed, flagged, args.project)
+        if not args.links_only:
+            for p in sorted(vault.rglob("*.md")):
+                if any(x.startswith(".")
+                       for x in p.relative_to(vault).parts):
+                    continue
+                repair_file(p, vault, all_names, fixed, flagged,
+                            args.project)
+        # graph-integrity pass (always — also the whole job of --links-only):
+        # stubs first so new stub files become valid link targets, then
+        # symmetrize so every A->B has B->A.
+        materialize_stubs(vault, args.project, fixed)
+        all_names = {p.stem for p in vault.rglob("*.md")
+                     if not any(x.startswith(".")
+                                for x in p.relative_to(vault).parts)}
         repair_links(vault, all_names, fixed)
     except OSError as e:
         print(f"I/O error: {e}", file=sys.stderr)

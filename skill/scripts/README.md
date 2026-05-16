@@ -68,10 +68,13 @@ Deterministic reconcile/fix pass. The validator *detects*; this *fixes*. Modifie
 
 ```bash
 python3 repair_vault.py --vault /path/to/vault --project synthmem-dev
-python3 repair_vault.py --vault /path/to/vault --format text   # human-readable
+python3 repair_vault.py --vault /path/to/vault --format text       # human-readable
+python3 repair_vault.py --vault /path/to/vault --links-only         # graph-integrity only
 ```
 
-Fixes: meta/archive/log tag normalization to the canonical 5-distinct tuple; `slug` → filename-stem-minus-prefix; missing reverse wikilinks; archive content-type → `summary`; bare `<…>` → backticked. Genuine duplicate-domain-tags on `node_`/`entity_` are **flagged, not auto-fixed** (need semantic re-tag).
+Full fixes: meta/archive/log tag normalization to the canonical 5-distinct tuple; `slug` → filename-stem-minus-prefix; missing reverse wikilinks; ≥3-ref `node_`/`entity_` stub materialization; archive content-type → `summary`; bare `<…>` → backticked. Genuine duplicate-domain-tags on `node_`/`entity_` are **flagged, not auto-fixed** (need semantic re-tag).
+
+`--links-only` (v0.6.7): runs **only** the deterministic graph-integrity pass — reverse-link symmetrization + ≥3-ref stub materialization (both `node_` and `entity_`). Skips tag/slug/markdown repairs. The **linker sub-agent calls this as its mandatory phase-3 final step** so the validation gate never sees asymmetric links and there is no per-run auto-heal churn (v0.6.6 observability proved the LLM linker emits ~176 asymmetric links/run that repair was cleaning every time). On the post-v0.6.6 test vault: REVIEW (16 warnings) → **PASS (0 warnings)**, 16 node-stubs created.
 
 **Stdout**: JSON `{summary, fixed[], flagged[]}`. Exit 0 always (it is a fix tool, not a gate). On the v0.6.2 test vault it took the verdict from FAIL (6 errors / 130 warnings) to REVIEW (0 errors / 2 warnings). Invoked by `/synthmem repair`; recommended by the gate whenever pre-existing errors appear.
 
