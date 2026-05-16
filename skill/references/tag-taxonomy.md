@@ -25,7 +25,7 @@ To prevent this, resolve tags in **reverse order of constraint**:
 1. **Position 5 — project context — FIRST.** Pick the real project/life context. Source priority:
    - An explicit project signal in the session (working dir, repo name, "this is for the sermon", etc.).
    - Else `config.default_project_tag`.
-   - Sermon / homiletic / theology-for-church content → `sermon-prep` or `alianza-republica`, **never** a doctrine word like `teologia`. (The user's church context: principal pastor Pr. Luis Solís, Iglesia Alianza República — treat ministry work as a real project, not a topic.)
+   - Recurring real-world activity (e.g. sermon/homiletic prep, a client engagement, a hobby project) → a *context* tag for that activity such as `sermon-prep` or `<your-congregation-slug>`, **never** the topic word (`teologia`, `theology`). Treat ongoing ministry/work/study as a real project, not a subject. (User-specific contexts — congregation name, client names — belong in `_local/`, never hardcoded here.)
    - A project tag is a *context*, never a *topic*. `synthmem-dev`, `sermon-prep`, `infra`, `client-x`, `personal` — yes. `theology`, `python`, `markdown` — no.
 
 2. **Position 4 — content-type — SECOND.** Exactly one from the fixed vocabulary (see below).
@@ -80,12 +80,14 @@ If you find yourself wanting to introduce a new content-type tag, **don't** — 
 
 This position identifies the **project / client / life context** — never a topic. Resolved FIRST (see "Assignment ORDER" above). Pulled from a session project signal, else `config.default_project_tag`.
 
-Valid (contexts):
-- `sermon-prep` / `alianza-republica` — ministry work for the user's church (Iglesia Alianza República, Pr. Luis Solís)
+Valid (contexts) — examples, adapt to your own life/work:
+- `sermon-prep` / `<your-congregation-slug>` — recurring ministry work
 - `synthmem-dev` — work on this skill
 - `infra` — server / tooling / migrations
-- `client-acme` — a specific client
+- `client-acme` — a specific client engagement
 - `personal`, `health`, `family` — life contexts
+
+> Concrete personal contexts (real congregation, client, or family names) are configured per-user in `_local/`, never written into this public spec.
 
 Invalid here (these are domains, not projects — they belong in positions 1–3):
 - ❌ `theology`, `teologia`, `python`, `markdown`, `claude-code`
