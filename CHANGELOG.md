@@ -5,6 +5,19 @@ All notable changes to this skill are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is semantic in spirit: `MAJOR.MINOR.PATCH`.
 
+## [0.6.9] — `/synthmem --retry`
+
+### Added
+- **`/synthmem --retry`**: reprocess **only** the sessions in `pending_sessions` (not the catch-up window). Same harvest→distill→link→index→gate, scoped to failures. Empty queue → "nothing to retry", exit 0.
+- **`update_state.py --action bump-retry`** + `pending_attempts` map + `MAX_RETRY_ATTEMPTS=3`. A session that fails 3 times is auto-removed from `pending_sessions` and recorded in `dropped_sessions` (surfaced to the user) — a permanently-broken session can never cause an infinite retry loop, preserving the autonomy contract. `remove-pending` now also clears the session's attempt counter.
+- `catch-up-logic.md` Step 3a pins the retry-counter mechanism; normal runs still auto-resume pending work, `--retry` is the explicit scoped form.
+
+## [0.6.8] — `/synthmem status`
+
+### Added
+- **`skill/scripts/status_vault.py`** + **`/synthmem status`**: read-only operational dashboard. Reports vault size + per-subdir file counts, last-run timestamp/status, total sessions processed + streak, draft-stub count, pending sessions (with a `/synthmem --retry` hint), and days elapsed since the last run. Reads `_state.json` + filesystem only — no validation, no writes, fast on large vaults. Clear separation: `status` = operational snapshot, `validate` = correctness, `repair` = fix.
+- Measured on the real vault: 538.8 KB / 138 files, last run [completed], 0 pending, 7 draft stubs — instant.
+
 ## [0.6.7] — linker root-cause fix (caught by v0.6.6 observability)
 
 v0.6.6's observability split did exactly its job on the first autonomous run: it flagged that the LLM linker emits ~176 asymmetric links **every run** (auto-heal was silently cleaning 73 files each time) and that 16 frequently-referenced `node_` concepts were dangling graph gaps. v0.6.7 fixes both at the root instead of patching symptoms each run.

@@ -107,12 +107,27 @@ python3 update_state.py --state-file VAULT/_state.json --action mark-processed -
 python3 update_state.py --state-file VAULT/_state.json --action add-pending --value <session-id>
 python3 update_state.py --state-file VAULT/_state.json --action remove-pending --value <session-id>
 
+# Bump a failed session's retry counter (auto-drops after 3 attempts into
+# dropped_sessions so a broken session never loops forever)
+python3 update_state.py --state-file VAULT/_state.json --action bump-retry --value <session-id>
+
 # Finalize the run (sets last_run = now, status = completed)
 python3 update_state.py --state-file VAULT/_state.json --action finalize-run --range-from 2026-05-13T00:00:00-05:00
 
 # Generic set: any key, any JSON-valued value
 python3 update_state.py --state-file VAULT/_state.json --action set --value 'sessions_processed_total=42'
 ```
+
+### `status_vault.py`
+
+Read-only operational dashboard (distinct from `validate_vault.py` correctness, `repair_vault.py` fixes). Reads `_state.json` + filesystem; never writes, never re-validates. Fast on large vaults.
+
+```bash
+python3 status_vault.py --vault /path/to/vault            # human-readable
+python3 status_vault.py --vault /path/to/vault --format json
+```
+
+Reports: vault size + per-subdir file counts, last-run timestamp/status, total sessions processed + streak, draft-stub count, pending sessions (+ retry hint), days since last run. Backs `/synthmem status`.
 
 ## Why scripts (instead of inline AI parsing)
 

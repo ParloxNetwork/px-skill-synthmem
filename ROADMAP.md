@@ -71,9 +71,13 @@ Each item lands as its own patch release (v0.6.x).
 - [x] **Fix A — deterministic link symmetry**: `repair_vault.py --links-only` (linker phase 3). The LLM linker does semantic forward-linking; a mandatory deterministic final step symmetrizes every `A→B` into `B→A`. v0.6.6's `⚠ distiller-smell` exposed ~176 asymmetric links/run that auto-heal was cleaning across 73 files *every run*. Now the gate sees zero — no per-run churn. Bidirectionality is bookkeeping → script, not LLM (v0.6.0 principle).
 - [x] **Fix B — ≥3-ref node stubs**: the ≥3-referrer stub rule now materializes `node_` stubs too, not only `entity_`. The 16 frequently-referenced concepts (3–6 refs each) that were dangling graph gaps now become `status: draft` stubs the distiller fleshes out later. Measured: post-v0.6.6 test vault REVIEW (16 warnings) → **PASS (0)**.
 
-### Coming in v0.6.8+
-- [ ] **v0.6.8** `/synthmem status`: report vault size, last-run, pending sessions, errors.
-- [ ] **v0.6.9** `/synthmem --retry`: reprocess failed sessions explicitly.
+### v0.6.8 — `/synthmem status`
+- [x] `status_vault.py` + `/synthmem status`: read-only operational dashboard (vault size, file counts, last-run, streak, draft stubs, pending sessions, days since last run). No validation, no writes; fast on large vaults. Clear separation status / validate / repair.
+
+### v0.6.9 — `/synthmem --retry`
+- [x] `/synthmem --retry` reprocesses only `pending_sessions`. `update_state.py --action bump-retry` + `pending_attempts` + `MAX_RETRY_ATTEMPTS=3` → a broken session auto-drops into `dropped_sessions` (surfaced), never loops forever. Normal runs still auto-resume; `--retry` is the explicit scoped form.
+
+### Coming in v0.6.10+
 - [ ] **v0.6.10** Tag-taxonomy linter: warn if a tag is "too generic" relative to existing nodes.
 
 ### Watch-items (open findings, not yet scheduled)

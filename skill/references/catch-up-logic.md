@@ -108,7 +108,14 @@ If a session was already partially processed in a previous run, the harvester re
 
 ### Step 3a — Resume pending sessions first
 
-If `pending_sessions` is non-empty: process those first, in arrival order, before tackling the new window. A pending session that succeeds is removed from the array; one that fails again increments its retry counter (drop it after 3 attempts and warn the user in the run report).
+If `pending_sessions` is non-empty: process those first, in arrival order, before tackling the new window.
+
+**Retry-counter mechanism (pinned in v0.6.9):**
+- On success: `update_state.py --action remove-pending --value <id>` (also clears its `pending_attempts` entry).
+- On repeat failure: `update_state.py --action bump-retry --value <id>`. This increments `_state.json.pending_attempts[<id>]`. When it reaches **3** (`MAX_RETRY_ATTEMPTS`), the script automatically removes the session from `pending_sessions`, clears its attempt counter, and appends it to `dropped_sessions`. The run report must surface dropped sessions ("gave up on session X after 3 attempts — its content was not consolidated; investigate the transcript manually").
+- A session being permanently broken (e.g. corrupt JSONL) must never cause an infinite retry loop — that is what the cap guarantees, preserving the autonomy contract (the run always reaches a terminal state).
+
+**`/synthmem --retry`** (explicit mode): processes **only** `pending_sessions` (not the catch-up window), using the same success/bump-retry bookkeeping. Use it when the user wants to reprocess failures immediately without a full run. With an empty queue it reports "nothing to retry" and exits 0. The automatic Step 3a resume still happens on normal runs regardless — `--retry` is just the user-invokable, scoped form.
 
 ### Step 4 — Group by day, process day-by-day
 

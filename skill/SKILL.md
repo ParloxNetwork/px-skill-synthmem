@@ -50,6 +50,14 @@ Deterministic fixes: meta/archive/log tag normalization to the canonical 5-disti
 
 After repair, run the validator and show the before/after verdict. Recommend `/synthmem repair` whenever the validation gate reports pre-existing (out-of-scope) errors.
 
+### `/synthmem status` — read-only operational dashboard
+
+If invoked as `/synthmem status`, run `scripts/status_vault.py --vault ${VAULT_PATH}` and print its output. No harvest, no distill, no validation, no writes. It reports vault size + file counts, last-run timestamp/status, total sessions processed + streak, draft-stub count, pending sessions (with a "run `/synthmem --retry`" hint if any), and days elapsed since the last run. Fast even on large vaults. This is the "how's my vault doing" snapshot; for a correctness check the user runs `/synthmem validate`, to fix issues `/synthmem repair`.
+
+### `/synthmem --retry` — reprocess failed sessions only
+
+If invoked with `--retry`, process **only** the sessions in `_state.json.pending_sessions` (not the catch-up window). Harvest → distill → link (incl. phase-3) → index → gate, scoped to those sessions. On success: `update_state.py --action remove-pending`. On repeat failure: `update_state.py --action bump-retry` (auto-drops after 3 attempts into `dropped_sessions`, reported to the user). If the pending queue is empty, report "nothing to retry" and exit. The automatic Step-3a resume still happens on every normal run; `--retry` is just the explicit, scoped form for when the user wants failures cleared now. See `references/catch-up-logic.md`.
+
 ### `/synthmem --dry-run` — preview, write nothing
 
 If invoked with `--dry-run`, produce a **plan** of what a real run would do, then exit having written **nothing**.

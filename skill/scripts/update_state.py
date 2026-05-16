@@ -39,11 +39,15 @@ DEFAULT_STATE = {
     "last_run_range": None,
     "processed_days": [],
     "pending_sessions": [],
+    "pending_attempts": {},
     "sessions_processed_total": 0,
     "current_streak_runs": 0,
     "migrated_to_typed_subdirs": False,
     "schema": {"frontmatter": "1.0", "vault_layout": "2.0"},
 }
+
+# A session failing this many times is dropped from the retry queue.
+MAX_RETRY_ATTEMPTS = 3
 
 
 def now_iso() -> str:
@@ -93,7 +97,8 @@ def main():
                     help="Path to the vault's _state.json")
     ap.add_argument("--action", required=True,
                     choices=["init", "mark-processed", "add-pending",
-                             "remove-pending", "finalize-run", "set"])
+                             "remove-pending", "bump-retry",
+                             "finalize-run", "set"])
     ap.add_argument("--value", default=None)
     ap.add_argument("--range-from", default=None,
                     help="finalize-run: the 'from' side of last_run_range")
@@ -141,6 +146,28 @@ def main():
         state["pending_sessions"] = [
             s for s in state.get("pending_sessions", []) if s != args.value
         ]
+        state.get("pending_attempts", {}).pop(args.value, None)
+
+    elif args.action == "bump-retry":
+        # Increment the retry counter for a session that failed again.
+        # When it reaches MAX_RETRY_ATTEMPTS the session is dropped from
+        # the retry queue (and flagged in stdout as "dropped") so the
+        # pipeline doesn't loop forever on a permanently-broken session.
+        if not args.value:
+            print("--value SESSION_ID required for bump-retry",
+                  file=sys.stderr)
+            sys.exit(1)
+        attempts = state.setdefault("pending_attempts", {})
+        attempts[args.value] = attempts.get(args.value, 0) + 1
+        if attempts[args.value] >= MAX_RETRY_ATTEMPTS:
+            state["pending_sessions"] = [
+                s for s in state.get("pending_sessions", [])
+                if s != args.value
+            ]
+            attempts.pop(args.value, None)
+            state.setdefault("dropped_sessions", [])
+            if args.value not in state["dropped_sessions"]:
+                state["dropped_sessions"].append(args.value)
 
     elif args.action == "finalize-run":
         now = now_iso()
